@@ -1,0 +1,302 @@
+[
+  {
+    "id": 1,
+    "question": "Tell me about a time you led a team through a difficult project.",
+    "tips": [
+      "Use the STAR method: Situation, Task, Action, Result.",
+      "Focus on your specific actions — not what the team did as a whole.",
+      "Quantify the outcome where possible (time saved, latency reduced, etc.)."
+    ],
+    "example_answer": "Our backend team had to rewrite the authentication service in 6 weeks due to a security audit. I set weekly milestones, ran 15-minute daily standups to surface blockers, and paired engineers by complementary strengths. When our lead engineer got sick in week 6, I absorbed part of her work and negotiated a two-week scope cut with the PM. We shipped on time with zero post-launch incidents and latency dropped 35%."
+  },
+  {
+    "id": 2,
+    "question": "Describe a situation where you had to deal with a difficult colleague.",
+    "tips": [
+      "Stay neutral — focus on the behaviour, not the person.",
+      "Show empathy: try to understand their perspective first.",
+      "Describe the resolution and what you personally learned."
+    ],
+    "example_answer": "A senior engineer frequently dismissed junior ideas in reviews, hurting morale. I set up a one-on-one and learned they felt code quality was slipping because the team moved too fast. We agreed to introduce a lightweight RFC process for significant changes. Reviews became more collaborative and two junior devs grew noticeably more confident."
+  },
+  {
+    "id": 3,
+    "question": "Tell me about a time you failed and what you learned from it.",
+    "tips": [
+      "Be honest and specific — vague failures sound evasive.",
+      "Show genuine reflection, not rehearsed humility.",
+      "Describe the concrete lesson you applied afterward."
+    ],
+    "example_answer": "I assured stakeholders a database migration would be done over a weekend. It took three weeks and delayed a feature launch. I had underestimated schema complexity and not involved the DBA team. Since then I always phase migrations, run them in staging for a full week, and add a 50% time buffer. I have not missed a migration estimate since."
+  },
+  {
+    "id": 4,
+    "question": "Give an example of a goal you reached and how you achieved it.",
+    "tips": [
+      "Pick a meaningful, specific goal — not a vague aspiration.",
+      "Explain your concrete strategy and daily actions.",
+      "Quantify the result."
+    ],
+    "example_answer": "I wanted to become the go-to person for performance optimisation on my team. I spent 30 minutes each morning reading profiling literature and applied each technique to real production bottlenecks. Within six months I had reduced our API p99 latency from 800ms to 200ms, and colleagues started routing performance questions to me before escalating."
+  },
+  {
+    "id": 5,
+    "question": "Describe a time you had to adapt to a significant change at work.",
+    "tips": [
+      "Show resilience — describe what you did, not just how you felt.",
+      "Explain your concrete upskilling strategy.",
+      "Show the positive outcome of your adaptability."
+    ],
+    "example_answer": "Our company pivoted mid-year from a B2C app to a B2B SaaS product, requiring multi-tenant architecture I had never built before. I spent two weeks reading architecture blogs and pairing with an engineer who had experience. I proposed the tenant isolation model we ultimately used, which has been in production for two years without a data isolation incident."
+  },
+  {
+    "id": 6,
+    "question": "Tell me about a time you disagreed with your manager.",
+    "tips": [
+      "Respect the relationship — show you raised it professionally, not emotionally.",
+      "Explain what evidence or reasoning you used.",
+      "Describe the outcome and what it says about the working relationship."
+    ],
+    "example_answer": "My manager wanted to ship a feature with a known performance regression to meet a quarter-end deadline. I believed it would increase churn. I prepared a brief with three comparable retention cases from our own data and proposed shipping a reduced version without the regression, delivering the full feature two weeks later. My manager agreed and the feature launched cleanly."
+  },
+  {
+    "id": 7,
+    "question": "Describe a situation where you had to make a decision with incomplete information.",
+    "tips": [
+      "Explain your reasoning process clearly — what signals did you use?",
+      "Show how you mitigated the downside risk.",
+      "Describe any retrospective learning."
+    ],
+    "example_answer": "During a production outage I had 15 minutes to act before a major customer call, and the root cause was ambiguous between two services. I checked recent deploy history and noticed one service had been deployed 30 minutes before the incident. I rolled it back without full confirmation — which fixed the issue. In the post-mortem I confirmed the root cause and used it to push for better deploy monitoring."
+  },
+  {
+    "id": 8,
+    "question": "Tell me about a time you went above and beyond for a colleague.",
+    "tips": [
+      "Highlight the extra effort clearly — why did you choose to help?",
+      "Show genuine motivation, not performative helpfulness.",
+      "Describe the lasting impact on the person or the team."
+    ],
+    "example_answer": "A teammate was stuck on a concurrency bug late on a Friday before a critical demo. Though outside my area, I stayed two extra hours. We traced it to a race condition in the task queue using thread trace logs. The demo went perfectly. My colleague later said the session changed how they approach concurrency issues and they have not hit a similar bug since."
+  },
+  {
+    "id": 9,
+    "question": "Give an example of a time you had to manage multiple priorities simultaneously.",
+    "tips": [
+      "Show your prioritisation framework — what criteria did you use?",
+      "Describe what you deferred or delegated and why.",
+      "Show you communicated clearly with all stakeholders."
+    ],
+    "example_answer": "I had overlapping crises: a revenue-impacting bug, a sprint review that afternoon, and a new hire starting the same day. I triaged the bug as highest priority since it affected payments, delegated the sprint review prep to a senior developer, and rescheduled the new hire onboarding to the following morning. The bug was fixed by noon; both the review and the onboarding ran without issues."
+  },
+  {
+    "id": 10,
+    "question": "Tell me about a time you had to give difficult feedback.",
+    "tips": [
+      "Focus on the behaviour, not the person's character.",
+      "Use specific examples — vague feedback is not useful.",
+      "Frame it as helping them grow, not criticising."
+    ],
+    "example_answer": "A junior engineer was consistently submitting PRs without documentation, causing review delays. In a private chat I shared two specific PRs as examples and showed a before-and-after of good documentation. I framed it as something I had struggled with early in my career. They improved significantly within two sprints and started asking me to review their docs proactively."
+  },
+  {
+    "id": 11,
+    "question": "Describe a situation where you had to learn something quickly.",
+    "tips": [
+      "Show initiative — describe your concrete learning strategy.",
+      "Quantify how fast you ramped up.",
+      "Describe the impact of your speed of learning."
+    ],
+    "example_answer": "I joined a team mid-project working in Rust, a language I had never used. I worked through Rustlings exercises each evening and asked for a low-risk bug as my first task to learn in context. Within 10 days I was reviewing others' code; within a month I submitted the team's most complex PR. The senior engineer who onboarded me said it was the fastest ramp-up they had seen."
+  },
+  {
+    "id": 12,
+    "question": "Tell me about a time you used data to make a decision.",
+    "tips": [
+      "Be specific about the data source and what it showed.",
+      "Describe how the data changed your initial thinking.",
+      "Quantify the outcome."
+    ],
+    "example_answer": "Our team debated whether to build a new onboarding tutorial. I pulled drop-off analytics and found 60% of users churned at step 3 — a complex setup step — not due to lack of guidance. Instead of a tutorial I proposed simplifying that step. Drop-off at step 3 fell to 22% and monthly retention improved by 8%."
+  },
+  {
+    "id": 13,
+    "question": "Give an example of a time you influenced someone without formal authority.",
+    "tips": [
+      "Build credibility first — show you understood their goals.",
+      "Connect your ask to their priorities, not just yours.",
+      "Describe the outcome and what made the influence stick."
+    ],
+    "example_answer": "I needed the data engineering team — who did not report to me — to prioritise a pipeline feeding our ML model. I wrote a one-pager showing the revenue impact of stale data and offered to help with implementation. They reprioritised within two sprints. Data freshness went from 24 hours to 1 hour and our model's accuracy improved by 12%."
+  },
+  {
+    "id": 14,
+    "question": "Tell me about a time you handled a high-pressure situation.",
+    "tips": [
+      "Show self-awareness about how you stayed composed.",
+      "Describe the concrete actions you took, not just how you felt.",
+      "Show the result and any systemic fix that followed."
+    ],
+    "example_answer": "Three days before a major product launch, our CI pipeline broke and no code could be deployed. I split the team into two tracks: one engineer to isolate the CI issue, the rest to keep testing in staging. Within four hours we had a fix. I also prepared a rollback plan for launch day. The launch went smoothly and the post-mortem improved our CI reliability significantly."
+  },
+  {
+    "id": 15,
+    "question": "Describe a project where you collaborated cross-functionally.",
+    "tips": [
+      "Highlight the communication challenges across teams with different goals.",
+      "Show how you bridged different perspectives.",
+      "Quantify the outcome."
+    ],
+    "example_answer": "Building a reporting dashboard required coordinating design, backend, data engineering, and sales. I set up weekly syncs and maintained a shared dependency doc. When the data model conflicted with what sales needed, I ran a focused 30-minute alignment session and we found a compatible schema. The dashboard shipped on time and became the most-used internal tool within its first month."
+  },
+  {
+    "id": 16,
+    "question": "Tell me about a time you took initiative without being asked.",
+    "tips": [
+      "Show you spotted an opportunity others overlooked.",
+      "Describe what you did and why you acted rather than waiting.",
+      "Quantify the impact."
+    ],
+    "example_answer": "I noticed our deployment process required four manual steps that were error-prone and slow. During a quiet sprint week I automated them with a short script and added it to our CI pipeline. The change saved each developer roughly 20 minutes a day and eliminated a class of deployment errors we had been seeing monthly."
+  },
+  {
+    "id": 17,
+    "question": "Give an example of a time you resolved a conflict within your team.",
+    "tips": [
+      "Stay neutral — show you genuinely heard both sides.",
+      "Describe the resolution process, not just the outcome.",
+      "Show the lasting effect on team dynamics."
+    ],
+    "example_answer": "Two engineers disagreed sharply about using GraphQL versus REST for a new API; the debate was becoming personal and blocking progress. I set up a structured session where each had 10 minutes to present their case with tradeoffs. I then proposed REST for the current phase and a revisit at the next architecture review. Both agreed and the API shipped on schedule."
+  },
+  {
+    "id": 18,
+    "question": "Tell me about a time you explained a complex technical topic to a non-technical audience.",
+    "tips": [
+      "Describe the analogy or simplification you chose and why it worked.",
+      "Show you adapted to your audience's level.",
+      "Describe their reaction and any lasting change in how they engaged with technical topics."
+    ],
+    "example_answer": "I had to explain to sales leadership why a requested feature would take six weeks, not one. The core issue was a database schema migration. I used an analogy: renovating a kitchen mid-service — possible but risky — and presented a safer phased plan. Leadership approved the phased approach and became noticeably more realistic about technical timelines in future planning sessions."
+  },
+  {
+    "id": 19,
+    "question": "Describe a time you made a mistake and how you handled it.",
+    "tips": [
+      "Own it without hedging — no passive voice or blaming circumstances.",
+      "Describe the immediate fix and how you communicated it.",
+      "Show the systemic improvement you made to prevent recurrence."
+    ],
+    "example_answer": "I accidentally deployed a config change to production instead of staging, breaking login for about 200 users for 12 minutes. I rolled it back immediately, posted a transparent incident summary to the team channel, and wrote a post-mortem. I then advocated for stricter environment separation in our CI config. The safeguard I added prevented a similar incident from a colleague six months later."
+  },
+  {
+    "id": 20,
+    "question": "Tell me about a time you mentored someone.",
+    "tips": [
+      "Describe the mentee's specific challenge — not just 'they were junior'.",
+      "Explain your approach and why you chose it.",
+      "Show measurable growth."
+    ],
+    "example_answer": "A junior engineer was consistently frustrated by slow PR reviews because their code was hard to test. I paired with them weekly for two months, focusing on why dependency injection matters rather than just how it works. Their PR review time halved and they later started mentoring an even more junior teammate using the same principles."
+  },
+  {
+    "id": 21,
+    "question": "Give an example of a time you received critical feedback and how you responded.",
+    "tips": [
+      "Show you listened without defensiveness — describe your initial reaction honestly.",
+      "Describe what specifically you changed, not just 'I tried harder'.",
+      "Show the measurable improvement."
+    ],
+    "example_answer": "My manager told me my code reviews were too nitpicky and slowing the team down. My first reaction was defensive, but I asked for specific examples. I realised I was blocking PRs over style issues a linter could catch. I set up a shared ESLint config and refocused reviews on logic, security, and architecture. Review turnaround dropped from two days to four hours."
+  },
+  {
+    "id": 22,
+    "question": "Tell me about a time you had to deliver bad news.",
+    "tips": [
+      "Prepare thoroughly before the conversation.",
+      "Be direct and empathetic — do not bury the headline.",
+      "Describe how you managed the aftermath."
+    ],
+    "example_answer": "I had to tell a client that a feature they had been waiting six weeks for would be delayed by another month due to an infrastructure issue. I prepared a written summary with the root cause and revised timeline before the call, took full accountability, and offered a partial workaround. I followed up with weekly progress emails. The client appreciated the transparency and renewed their contract at year end."
+  },
+  {
+    "id": 23,
+    "question": "Describe a situation where you had to deliver results with limited resources.",
+    "tips": [
+      "Show smart prioritisation — what impact-versus-effort framework did you use?",
+      "Describe what you cut and why.",
+      "Quantify the result."
+    ],
+    "example_answer": "With only two engineers and a two-month deadline, I ran an impact-versus-effort exercise with product and cut four of seven planned features. We focused on the three highest-impact ones and shipped them with solid quality. The product team later confirmed those were the only features users actually adopted in Q1 — the cut features were eventually deprioritised entirely."
+  },
+  {
+    "id": 24,
+    "question": "Tell me about a time you identified and solved a problem proactively.",
+    "tips": [
+      "Show how you spotted the issue before it became critical.",
+      "Describe the preventive action you took.",
+      "Quantify what would have happened without your intervention."
+    ],
+    "example_answer": "I noticed database query times creeping up week over week in our monitoring dashboards, still within SLA but trending badly. I ran EXPLAIN ANALYZE on our most frequent queries and found two missing indexes. I added them during a quiet maintenance window. Based on traffic projections we were about three weeks from a serious performance incident. The queries have been fast ever since."
+  },
+  {
+    "id": 25,
+    "question": "Give an example of a time you had to pivot your approach mid-project.",
+    "tips": [
+      "Show you recognised the pivot point early rather than waiting for failure.",
+      "Explain why the original approach was not working.",
+      "Describe the new approach and the outcome."
+    ],
+    "example_answer": "Halfway through building a custom recommendation engine, I realised our training data was too sparse for the ML approach to ever reach acceptable accuracy. Rather than continue, I proposed switching to collaborative filtering, a simpler and better-suited method. It took a week to pivot but the system outperformed our ML prototype by 30% on test data and shipped two weeks ahead of the original plan."
+  },
+  {
+    "id": 26,
+    "question": "Tell me about a time you built a relationship with a difficult stakeholder.",
+    "tips": [
+      "Show empathy — what was driving their difficulty?",
+      "Describe specific trust-building actions, not just 'I was nice'.",
+      "Show the long-term payoff."
+    ],
+    "example_answer": "A product manager at a partner company was sceptical of our API and frequently escalated minor integration issues publicly. I set up a bi-weekly check-in to share our roadmap transparently and hear their concerns early. After three months, they were advocating for our API internally and introduced us to two potential customers at their company."
+  },
+  {
+    "id": 27,
+    "question": "Describe a situation where you had to choose between competing deadlines.",
+    "tips": [
+      "Show your prioritisation framework — what criteria did you use?",
+      "Describe who you communicated with and how early.",
+      "Be explicit about the tradeoffs you accepted."
+    ],
+    "example_answer": "I had overlapping hard deadlines: a security patch blocking a customer launch, and a board-level product demo. The security patch was non-negotiable and would take two days. I communicated to the demo team that I could contribute one focused afternoon and no more. I delivered the security patch first, joined the demo prep for a single session, and both delivered on time."
+  },
+  {
+    "id": 28,
+    "question": "Tell me about a time you improved a process.",
+    "tips": [
+      "Show you identified a real friction point — not just an aesthetic preference.",
+      "Describe how you got buy-in from others.",
+      "Quantify the improvement."
+    ],
+    "example_answer": "Our incident review process was ad hoc — action items were discussed but rarely tracked. I proposed a simple template with an owner field and a two-week resolution deadline. I ran the first three reviews using the template before handing ownership to a rotating lead. Action item completion went from roughly 40% to 85% within two months."
+  },
+  {
+    "id": 29,
+    "question": "Give an example of a time you helped a struggling colleague.",
+    "tips": [
+      "Show genuine care — what made you notice and act?",
+      "Describe what was actually causing their struggle.",
+      "Show the lasting impact."
+    ],
+    "example_answer": "I noticed a colleague was consistently missing sprint goals and had grown quieter in standups. I reached out privately and learned they were stuck on a vague ticket with no clear acceptance criteria. I helped them break it into subtasks, wrote acceptance criteria together, and checked in twice a week. They finished on time and told me it changed how they approach ambiguous tasks."
+  },
+  {
+    "id": 30,
+    "question": "Tell me about a time you defended a technical decision to leadership.",
+    "tips": [
+      "Show you prepared with data and a clear cost-benefit case.",
+      "Describe how you handled pushback without backing down unnecessarily.",
+      "Convey confidence without dismissing their concerns."
+    ],
+    "example_answer": "I recommended migrating from a monolith to a service-oriented architecture. Leadership was concerned about cost and risk. I prepared a three-year cost-benefit analysis, highlighted concrete pain points — our weekly deployment conflicts — and proposed a phased migration with clear go/no-go milestones. Leadership approved the first phase. The architecture we built eventually supported a 10x increase in user load without major incidents."
+  }
+]

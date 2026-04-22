@@ -1,0 +1,270 @@
+import json
+import os
+import random as _random
+import uuid
+from datetime import date, timedelta
+from flask import Flask, jsonify, request, render_template
+
+app = Flask(__name__)
+
+DATA_FILE = os.path.join(os.path.dirname(__file__), "data", "interviews.json")
+QUESTIONS_FILE = os.path.join(os.path.dirname(__file__), "data", "questions.json")
+PRACTICE_FILE = os.path.join(os.path.dirname(__file__), "data", "practice.json")
+SYSTEM_DESIGN_FILE = os.path.join(os.path.dirname(__file__), "data", "system_design.json")
+
+
+def load_data():
+    if not os.path.exists(DATA_FILE):
+        return []
+    with open(DATA_FILE, "r") as f:
+        return json.load(f)
+
+
+def save_data(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def load_questions():
+    with open(QUESTIONS_FILE) as f:
+        return json.load(f)
+
+
+def load_practice():
+    if not os.path.exists(PRACTICE_FILE):
+        return {"history": {}}
+    with open(PRACTICE_FILE) as f:
+        return json.load(f)
+
+
+def save_practice(data):
+    with open(PRACTICE_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def load_system_design():
+    if not os.path.exists(SYSTEM_DESIGN_FILE):
+        return {"exercises": []}
+    with open(SYSTEM_DESIGN_FILE) as f:
+        return json.load(f)
+
+
+def save_system_design(data):
+    with open(SYSTEM_DESIGN_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def compute_streak(history):
+    today = date.today()
+    streak = 0
+    d = today
+    skipped_today = False
+    while streak <= 365:
+        key = d.isoformat()
+        completed = history.get(key, {}).get("completed", [])
+        if completed:
+            streak += 1
+            d -= timedelta(days=1)
+        elif not skipped_today:
+            skipped_today = True
+            d -= timedelta(days=1)
+        else:
+            break
+    return streak
+
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+@app.route("/api/interviews", methods=["GET"])
+def list_interviews():
+    return jsonify(load_data())
+
+
+@app.route("/api/interviews", methods=["POST"])
+def create_interview():
+    data = load_data()
+    entry = request.get_json()
+    entry["id"] = str(uuid.uuid4())
+    if not entry.get("application_date"):
+        entry["application_date"] = date.today().isoformat()
+    data.append(entry)
+    save_data(data)
+    return jsonify(entry), 201
+
+
+@app.route("/api/interviews/<entry_id>", methods=["PUT"])
+def update_interview(entry_id):
+    data = load_data()
+    for i, entry in enumerate(data):
+        if entry["id"] == entry_id:
+            updated = request.get_json()
+            updated["id"] = entry_id
+            data[i] = updated
+            save_data(data)
+            return jsonify(updated)
+    return jsonify({"error": "Not found"}), 404
+
+
+@app.route("/api/interviews/<entry_id>", methods=["DELETE"])
+def delete_interview(entry_id):
+    data = load_data()
+    new_data = [e for e in data if e["id"] != entry_id]
+    if len(new_data) == len(data):
+        return jsonify({"error": "Not found"}), 404
+    save_data(new_data)
+    return "", 204
+
+
+@app.route("/api/practice/today", methods=["GET"])
+def practice_today():
+    questions = load_questions()
+    practice = load_practice()
+    today = date.today().isoformat()
+
+    rng = _random.Random(int(date.today().strftime("%Y%m%d")))
+    all_ids = [q["id"] for q in questions]
+    selected_ids = rng.sample(all_ids, 3)
+
+    if today not in practice["history"]:
+        practice["history"][today] = {"questions": selected_ids, "completed": []}
+        save_practice(practice)
+    else:
+        selected_ids = practice["history"][today].get("questions", selected_ids)
+
+    q_map = {q["id"]: q for q in questions}
+    selected_questions = [q_map[qid] for qid in selected_ids if qid in q_map]
+    completed = practice["history"][today].get("completed", [])
+
+    return jsonify({
+        "questions": selected_questions,
+        "completed": completed,
+        "streak": compute_streak(practice["history"]),
+    })
+
+
+@app.route("/api/practice/complete", methods=["POST"])
+def practice_complete():
+    body = request.get_json()
+    question_id = body["question_id"]
+    practice = load_practice()
+    today = date.today().isoformat()
+
+    if today not in practice["history"]:
+        practice["history"][today] = {"questions": [], "completed": []}
+
+    if question_id not in practice["history"][today]["completed"]:
+        practice["history"][today]["completed"].append(question_id)
+
+    save_practice(practice)
+    return jsonify({"streak": compute_streak(practice["history"])})
+
+
+@app.route("/api/practice/progress", methods=["GET"])
+def practice_progress():
+    practice = load_practice()
+    today = date.today()
+
+    calendar = []
+    for i in range(6, -1, -1):
+        d = today - timedelta(days=i)
+        key = d.isoformat()
+        day_data = practice["history"].get(key, {})
+        calendar.append({
+            "date": key,
+            "completed": len(day_data.get("completed", [])),
+            "total": len(day_data.get("questions", [])) or 3,
+        })
+
+    total_completed = sum(
+        len(v.get("completed", [])) for v in practice["history"].values()
+    )
+    return jsonify({
+        "calendar": calendar,
+        "streak": compute_streak(practice["history"]),
+        "total_completed": total_completed,
+    })
+
+
+@app.route("/api/progress", methods=["GET"])
+def combined_progress():
+    practice = load_practice()
+    sd_data = load_system_design()
+    today = date.today()
+
+    calendar = []
+    for i in range(6, -1, -1):
+        d = today - timedelta(days=i)
+        key = d.isoformat()
+        day_data = practice["history"].get(key, {})
+        sd_count = sum(1 for e in sd_data["exercises"] if e.get("date") == key)
+        calendar.append({
+            "date": key,
+            "questions_completed": len(day_data.get("completed", [])),
+            "questions_total": len(day_data.get("questions", [])) or 3,
+            "sd_count": sd_count,
+        })
+
+    total_questions = sum(
+        len(v.get("completed", [])) for v in practice["history"].values()
+    )
+    week_ago = today - timedelta(days=7)
+    sd_this_week = sum(
+        1 for e in sd_data["exercises"]
+        if e.get("date") and date.fromisoformat(e["date"]) >= week_ago
+    )
+
+    return jsonify({
+        "streak": compute_streak(practice["history"]),
+        "total_questions": total_questions,
+        "total_sd": len(sd_data["exercises"]),
+        "sd_this_week": sd_this_week,
+        "calendar": calendar,
+    })
+
+
+@app.route("/api/system-design", methods=["GET"])
+def list_system_design():
+    return jsonify(load_system_design()["exercises"])
+
+
+@app.route("/api/system-design", methods=["POST"])
+def create_system_design():
+    data = load_system_design()
+    entry = request.get_json()
+    entry["id"] = str(uuid.uuid4())
+    if not entry.get("date"):
+        entry["date"] = date.today().isoformat()
+    data["exercises"].append(entry)
+    save_system_design(data)
+    return jsonify(entry), 201
+
+
+@app.route("/api/system-design/<entry_id>", methods=["PUT"])
+def update_system_design(entry_id):
+    data = load_system_design()
+    for i, entry in enumerate(data["exercises"]):
+        if entry["id"] == entry_id:
+            updated = request.get_json()
+            updated["id"] = entry_id
+            data["exercises"][i] = updated
+            save_system_design(data)
+            return jsonify(updated)
+    return jsonify({"error": "Not found"}), 404
+
+
+@app.route("/api/system-design/<entry_id>", methods=["DELETE"])
+def delete_system_design(entry_id):
+    data = load_system_design()
+    new_exercises = [e for e in data["exercises"] if e["id"] != entry_id]
+    if len(new_exercises) == len(data["exercises"]):
+        return jsonify({"error": "Not found"}), 404
+    data["exercises"] = new_exercises
+    save_system_design(data)
+    return "", 204
+
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)

@@ -1,0 +1,16 @@
+.next/
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.DS_Store
+
+# Personal data
+data/interviews.json
+data/practice.json
+data/system_design.json
