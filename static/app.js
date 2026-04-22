@@ -11,6 +11,9 @@ let sdExercises = [];
 let sdEditingId = null;
 let sdLoaded = false;
 
+let challengesData = [];
+let challengesLoaded = false;
+
 const STATUS_BADGE = {
   'Applied':      'badge-applied',
   'Phone Screen': 'badge-phone-screen',
@@ -341,7 +344,7 @@ function switchTab(tabName) {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tabName);
   });
-  ['tracker', 'practice', 'system-design', 'progress'].forEach(t => {
+  ['tracker', 'practice', 'challenges', 'system-design', 'progress'].forEach(t => {
     document.getElementById('tab-' + t).classList.toggle('hidden', tabName !== t);
   });
   document.getElementById('btn-add').classList.toggle('hidden', tabName !== 'tracker');
@@ -349,6 +352,10 @@ function switchTab(tabName) {
   if (tabName === 'practice' && !practiceLoaded) {
     practiceLoaded = true;
     loadPracticeToday();
+  }
+  if (tabName === 'challenges' && !challengesLoaded) {
+    challengesLoaded = true;
+    chLoad();
   }
   if (tabName === 'system-design' && !sdLoaded) {
     sdLoaded = true;
@@ -449,6 +456,8 @@ async function loadProgress() {
   document.getElementById('prog-total-q').textContent = data.total_questions;
   document.getElementById('prog-total-sd').textContent = data.total_sd;
   document.getElementById('prog-sd-week').textContent = data.sd_this_week;
+  document.getElementById('prog-challenges').textContent =
+    `${data.challenges_done}/${data.challenges_total}`;
   renderCombinedCalendar(data.calendar);
 }
 
@@ -585,8 +594,9 @@ function renderCombinedCalendar(calendar) {
     const dayNum = d.getDate();
     const month = d.toLocaleDateString('en-US', { month: 'short' });
     const isToday = day.date === today;
-    const qLevel = Math.min(day.questions_completed, 3);
+    const qLevel  = Math.min(day.questions_completed, 3);
     const sdLevel = Math.min(day.sd_count, 3);
+    const chLevel = Math.min(day.ch_count, 3);
     return `
       <div class="cal-day ${isToday ? 'cal-today' : ''}">
         <span class="cal-day-name">${dayName}</span>
@@ -594,7 +604,105 @@ function renderCombinedCalendar(calendar) {
         <span class="cal-month-lbl">${month}</span>
         <div class="cal-dot cal-dot-${qLevel}">${day.questions_completed}/${day.questions_total}</div>
         <div class="cal-sd-dot cal-sd-dot-${sdLevel}">${day.sd_count > 0 ? '🏗 ' + day.sd_count : '—'}</div>
+        <div class="cal-ch-dot cal-ch-dot-${chLevel}">${day.ch_count > 0 ? '💻 ' + day.ch_count : '—'}</div>
       </div>
     `;
   }).join('');
+}
+
+/* ────────────────────────────────────────────
+   CODE CHALLENGES
+──────────────────────────────────────────── */
+async function chLoad() {
+  const res = await fetch('/api/challenges');
+  challengesData = await res.json();
+  chPopulateTopics();
+  chRender();
+
+  document.getElementById('ch-search').addEventListener('input', chRender);
+  document.getElementById('ch-filter-week').addEventListener('change', chRender);
+  document.getElementById('ch-filter-diff').addEventListener('change', chRender);
+  document.getElementById('ch-filter-topic').addEventListener('change', chRender);
+  document.getElementById('ch-filter-status').addEventListener('change', chRender);
+}
+
+function chPopulateTopics() {
+  const topics = [...new Set(challengesData.map(c => c.topic))].sort();
+  const sel = document.getElementById('ch-filter-topic');
+  topics.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t;
+    opt.textContent = t;
+    sel.appendChild(opt);
+  });
+}
+
+function chRender() {
+  const search = document.getElementById('ch-search').value.toLowerCase();
+  const week   = document.getElementById('ch-filter-week').value;
+  const diff   = document.getElementById('ch-filter-diff').value;
+  const topic  = document.getElementById('ch-filter-topic').value;
+  const status = document.getElementById('ch-filter-status').value;
+
+  const filtered = challengesData.filter(c => {
+    if (search && !c.title.toLowerCase().includes(search)) return false;
+    if (week   && String(c.week) !== week) return false;
+    if (diff   && c.difficulty !== diff) return false;
+    if (topic  && c.topic !== topic) return false;
+    if (status === 'done' && !c.done) return false;
+    if (status === 'todo' && c.done) return false;
+    return true;
+  });
+
+  const total  = challengesData.length;
+  const done   = challengesData.filter(c => c.done).length;
+  const easyTotal  = challengesData.filter(c => c.difficulty === 'Easy').length;
+  const easyDone   = challengesData.filter(c => c.difficulty === 'Easy' && c.done).length;
+  const medTotal   = challengesData.filter(c => c.difficulty === 'Medium').length;
+  const medDone    = challengesData.filter(c => c.difficulty === 'Medium' && c.done).length;
+  const pct = total ? Math.round(done / total * 100) : 0;
+
+  document.getElementById('ch-done').textContent  = done;
+  document.getElementById('ch-total').textContent = total;
+  document.getElementById('ch-pct').textContent   = pct + '%';
+  document.getElementById('ch-bar').style.width   = pct + '%';
+  document.getElementById('ch-easy-done').textContent  = easyDone;
+  document.getElementById('ch-easy-total').textContent = easyTotal;
+  document.getElementById('ch-med-done').textContent   = medDone;
+  document.getElementById('ch-med-total').textContent  = medTotal;
+
+  const tbody = document.getElementById('ch-tbody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-msg">No problems match your filters.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(c => `
+    <tr class="${c.done ? 'ch-row-done' : ''}">
+      <td>
+        <button class="ch-toggle ${c.done ? 'ch-toggle-done' : ''}"
+                onclick="chToggle(${c.id})" title="${c.done ? 'Mark as todo' : 'Mark as done'}">
+          ${c.done ? '✓' : ''}
+        </button>
+      </td>
+      <td>
+        <a href="${esc(c.url)}" target="_blank" class="ch-link">${esc(c.title)}</a>
+      </td>
+      <td><span class="badge ${c.difficulty === 'Easy' ? 'badge-easy' : 'badge-medium'}">${esc(c.difficulty)}</span></td>
+      <td>${esc(c.topic)}</td>
+      <td style="color:var(--text-muted)">Week ${c.week}</td>
+    </tr>
+  `).join('');
+}
+
+async function chToggle(id) {
+  const res = await fetch('/api/challenges/toggle', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id }),
+  });
+  const { done } = await res.json();
+  const ch = challengesData.find(c => c.id === id);
+  if (ch) ch.done = done;
+  chRender();
 }

@@ -14,7 +14,8 @@
       <h1>🗂 Interview Tracker</h1>
       <nav class="tab-nav" id="main-tabs">
         <button class="tab-btn active" data-tab="tracker">📋 Applications</button>
-        <button class="tab-btn" data-tab="practice">🧠 Daily Practice</button>
+        <button class="tab-btn" data-tab="practice">🧠 Behavioral</button>
+        <button class="tab-btn" data-tab="challenges">💻 Code Challenges</button>
         <button class="tab-btn" data-tab="system-design">🏗 System Design</button>
         <button class="tab-btn" data-tab="progress">📊 Progress</button>
       </nav>
@@ -83,6 +84,73 @@
     </div>
   </div>
 
+  <!-- Code Challenges tab -->
+  <div id="tab-challenges" class="hidden">
+    <div class="ch-wrapper">
+
+      <div class="ch-top-bar">
+        <div class="ch-progress-block">
+          <div class="ch-progress-label">
+            <span id="ch-done">0</span> / <span id="ch-total">58</span> completed
+            <span class="ch-pct" id="ch-pct">0%</span>
+          </div>
+          <div class="ch-progress-bar-track">
+            <div class="ch-progress-bar-fill" id="ch-bar"></div>
+          </div>
+          <div class="ch-diff-stats">
+            <span class="badge badge-easy-stat">Easy <span id="ch-easy-done">0</span>/<span id="ch-easy-total">0</span></span>
+            <span class="badge badge-medium-stat">Medium <span id="ch-med-done">0</span>/<span id="ch-med-total">0</span></span>
+          </div>
+        </div>
+        <a href="https://www.techinterviewhandbook.org/grind75" target="_blank" class="btn btn-secondary">↗ Grind 75</a>
+      </div>
+
+      <div class="ch-filters toolbar">
+        <input type="text" id="ch-search" placeholder="Search problems…" />
+        <select id="ch-filter-week">
+          <option value="">All weeks</option>
+          <option value="1">Week 1</option>
+          <option value="2">Week 2</option>
+          <option value="3">Week 3</option>
+          <option value="4">Week 4</option>
+          <option value="5">Week 5</option>
+          <option value="6">Week 6</option>
+        </select>
+        <select id="ch-filter-diff">
+          <option value="">All difficulties</option>
+          <option value="Easy">Easy</option>
+          <option value="Medium">Medium</option>
+        </select>
+        <select id="ch-filter-topic">
+          <option value="">All topics</option>
+        </select>
+        <select id="ch-filter-status">
+          <option value="">All</option>
+          <option value="todo">Todo</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="ch-table">
+          <thead>
+            <tr>
+              <th style="width:40px"></th>
+              <th>Problem</th>
+              <th>Difficulty</th>
+              <th>Topic</th>
+              <th>Week</th>
+            </tr>
+          </thead>
+          <tbody id="ch-tbody">
+            <tr><td colspan="5" class="empty-msg">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Progress tab -->
   <div id="tab-progress" class="hidden">
     <div class="progress-outer">
@@ -103,6 +171,10 @@
           <div class="stat-value" id="prog-sd-week">0</div>
           <div class="stat-label">📅 SD This Week</div>
         </div>
+        <div class="stat-card">
+          <div class="stat-value" id="prog-challenges">0</div>
+          <div class="stat-label">💻 Challenges Done</div>
+        </div>
       </div>
       <div class="calendar-section">
         <h3>Last 7 Days</h3>
@@ -110,6 +182,7 @@
         <div class="combined-cal-legend">
           <span class="legend-item"><span class="legend-dot legend-q"></span> Questions</span>
           <span class="legend-item"><span class="legend-dot legend-sd"></span> System Design</span>
+          <span class="legend-item"><span class="legend-dot legend-ch"></span> Code Challenges</span>
         </div>
       </div>
     </div>

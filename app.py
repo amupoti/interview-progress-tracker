@@ -11,6 +11,8 @@ DATA_FILE = os.path.join(os.path.dirname(__file__), "data", "interviews.json")
 QUESTIONS_FILE = os.path.join(os.path.dirname(__file__), "data", "questions.json")
 PRACTICE_FILE = os.path.join(os.path.dirname(__file__), "data", "practice.json")
 SYSTEM_DESIGN_FILE = os.path.join(os.path.dirname(__file__), "data", "system_design.json")
+CHALLENGES_FILE = os.path.join(os.path.dirname(__file__), "data", "challenges.json")
+CHALLENGES_PROGRESS_FILE = os.path.join(os.path.dirname(__file__), "data", "challenges_progress.json")
 
 
 def load_data():
@@ -51,6 +53,28 @@ def load_system_design():
 
 def save_system_design(data):
     with open(SYSTEM_DESIGN_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def load_challenges():
+    with open(CHALLENGES_FILE) as f:
+        return json.load(f)
+
+
+def load_challenges_progress():
+    if not os.path.exists(CHALLENGES_PROGRESS_FILE):
+        return {"completed": {}}
+    with open(CHALLENGES_PROGRESS_FILE) as f:
+        data = json.load(f)
+    # migrate old list format → {id: date} dict
+    if isinstance(data.get("completed"), list):
+        data["completed"] = {str(i): date.today().isoformat() for i in data["completed"]}
+        save_challenges_progress(data)
+    return data
+
+
+def save_challenges_progress(data):
+    with open(CHALLENGES_PROGRESS_FILE, "w") as f:
         json.dump(data, f, indent=2)
 
 
@@ -192,6 +216,7 @@ def practice_progress():
 def combined_progress():
     practice = load_practice()
     sd_data = load_system_design()
+    ch_progress = load_challenges_progress()
     today = date.today()
 
     calendar = []
@@ -200,11 +225,13 @@ def combined_progress():
         key = d.isoformat()
         day_data = practice["history"].get(key, {})
         sd_count = sum(1 for e in sd_data["exercises"] if e.get("date") == key)
+        ch_count = sum(1 for v in ch_progress["completed"].values() if v == key)
         calendar.append({
             "date": key,
             "questions_completed": len(day_data.get("completed", [])),
             "questions_total": len(day_data.get("questions", [])) or 3,
             "sd_count": sd_count,
+            "ch_count": ch_count,
         })
 
     total_questions = sum(
@@ -216,13 +243,44 @@ def combined_progress():
         if e.get("date") and date.fromisoformat(e["date"]) >= week_ago
     )
 
+    challenges_done = len(ch_progress["completed"])
+    challenges_total = len(load_challenges())
+
     return jsonify({
         "streak": compute_streak(practice["history"]),
         "total_questions": total_questions,
         "total_sd": len(sd_data["exercises"]),
         "sd_this_week": sd_this_week,
+        "challenges_done": challenges_done,
+        "challenges_total": challenges_total,
         "calendar": calendar,
     })
+
+
+@app.route("/api/challenges", methods=["GET"])
+def list_challenges():
+    challenges = load_challenges()
+    progress = load_challenges_progress()
+    completed = progress["completed"]
+    for c in challenges:
+        c["done"] = str(c["id"]) in completed
+    return jsonify(challenges)
+
+
+@app.route("/api/challenges/toggle", methods=["POST"])
+def toggle_challenge():
+    body = request.get_json()
+    challenge_id = str(body["id"])
+    progress = load_challenges_progress()
+    completed = progress["completed"]
+    if challenge_id in completed:
+        del completed[challenge_id]
+        done = False
+    else:
+        completed[challenge_id] = date.today().isoformat()
+        done = True
+    save_challenges_progress(progress)
+    return jsonify({"done": done, "total_done": len(completed)})
 
 
 @app.route("/api/system-design", methods=["GET"])
