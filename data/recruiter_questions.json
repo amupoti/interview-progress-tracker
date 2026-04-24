@@ -1,0 +1,202 @@
+[
+  {
+    "id": 1,
+    "question": "Tell me about yourself.",
+    "tips": [
+      "Use a 2-minute structure: present role → key achievements → why you're here.",
+      "Tailor it to the role — emphasise the skills most relevant to this company.",
+      "End with a forward-looking sentence that bridges into why you're interested."
+    ],
+    "example_answer": "I'm a senior software engineer with eight years of experience building distributed backend systems, most recently at a fintech scale-up where I led a team of five. In the last two years I've owned our payments infrastructure, reducing settlement latency by 40% and achieving 99.99% uptime. I'm now looking for a principal-level role where I can have broader architectural impact — which is exactly what drew me to this position."
+  },
+  {
+    "id": 2,
+    "question": "Why are you looking for a new role?",
+    "tips": [
+      "Be honest but positive — never criticise your current employer.",
+      "Frame it as moving towards something, not away from something.",
+      "Tie your reason to something specific about this company or role."
+    ],
+    "example_answer": "I've had a great run at my current company and learned a lot, but the team has stabilised and the scope of work has narrowed considerably. I'm looking for a role where I can take on more architectural ownership and work on harder scaling problems. When I saw the scale of what you're building here, it felt like the right next step."
+  },
+  {
+    "id": 3,
+    "question": "Why are you interested in this company?",
+    "tips": [
+      "Do your research — mention something specific: product, mission, recent news, tech stack.",
+      "Connect it to your own values or career goals.",
+      "Avoid generic answers like 'great culture' without evidence."
+    ],
+    "example_answer": "I've been following your engineering blog for over a year — the post on your database sharding strategy was directly relevant to a problem I was solving. More broadly, your mission to democratise access to financial services aligns with work I care about. I'm also excited by the scale: hundreds of millions of users is a technical challenge I haven't had at this level before."
+  },
+  {
+    "id": 4,
+    "question": "What are your salary expectations?",
+    "tips": [
+      "Do your research beforehand: Glassdoor, Levels.fyi, LinkedIn Salary.",
+      "Give a range with your target at the lower end so there's room to negotiate upward.",
+      "Mention you're open to discussing the full package — equity, bonus, benefits."
+    ],
+    "example_answer": "Based on my research and experience level, I'm targeting a base in the range of £X–£Y. That said, I'm interested in the total package — equity, bonus, and growth trajectory matter to me too. I'm happy to discuss what's possible within your band."
+  },
+  {
+    "id": 5,
+    "question": "Where do you see yourself in 5 years?",
+    "tips": [
+      "Show ambition without implying you'll leave quickly.",
+      "Align your goals with what this role could realistically lead to.",
+      "Be specific about the type of impact you want to have, not just a job title."
+    ],
+    "example_answer": "In five years I'd like to be operating at a staff or principal level, owning the technical direction for a significant part of the product. I want to be the person who spots system-wide bottlenecks before they become incidents and mentors the next generation of engineers. Longer term, I'm interested in how technology decisions connect to business outcomes, so I'd want to grow that muscle too."
+  },
+  {
+    "id": 6,
+    "question": "What are your greatest strengths?",
+    "tips": [
+      "Pick two or three strengths that are directly relevant to the role.",
+      "Back each with a short, concrete example — don't just list adjectives.",
+      "Avoid overused answers like 'hard worker' or 'perfectionist'."
+    ],
+    "example_answer": "My strongest skill is diagnosing complex systems problems quickly. During incidents I'm usually the one who builds the mental model fastest and spots non-obvious root causes. My second strength is translating technical work into business terms — I've consistently been asked to present to stakeholders because I can connect a latency improvement to revenue impact clearly."
+  },
+  {
+    "id": 7,
+    "question": "What are your weaknesses?",
+    "tips": [
+      "Be genuine — interviewers see through obvious humble-brags like 'I work too hard'.",
+      "Pick a real weakness that you're actively improving.",
+      "Show concrete steps you've taken and evidence of progress."
+    ],
+    "example_answer": "I used to struggle with saying no to requests — I'd take on too much and deliver everything late rather than pushing back earlier. I noticed this was creating stress for me and unpredictability for my team. Over the past year I've been more deliberate about communicating capacity at the start of a sprint and proposing trade-offs rather than just absorbing scope. My delivery predictability has improved significantly."
+  },
+  {
+    "id": 8,
+    "question": "Why should we hire you?",
+    "tips": [
+      "Summarise the top two or three things that make you the best fit.",
+      "Be specific to the role — reference requirements from the job description.",
+      "End with enthusiasm: show you want this specific role, not just any offer."
+    ],
+    "example_answer": "Three things: first, I've solved the exact scaling problems you're facing — I've built multi-tenant payment systems at similar transaction volumes. Second, I have a track record of ramping fast — I was leading a sub-team within three months at my current role. Third, I genuinely want to work on this product; I've been a user for two years and have strong opinions about where it could go."
+  },
+  {
+    "id": 9,
+    "question": "What do you know about our company?",
+    "tips": [
+      "Show you've done real research: product, mission, recent funding, blog posts, news.",
+      "Mention at least one specific technical or business detail.",
+      "Tie it back to why you're excited — knowledge without enthusiasm falls flat."
+    ],
+    "example_answer": "You launched in 2018 with a B2C lending product and have since expanded into SME lending and embedded finance. You recently raised a Series C and are hiring aggressively on the infrastructure side — which matches the job description I applied for. I read your CTO's post on migrating off a Rails monolith to event-driven services, and that's exactly the type of architectural work I enjoy."
+  },
+  {
+    "id": 10,
+    "question": "What are you looking for in your next role?",
+    "tips": [
+      "Be specific: scope of ownership, team size, technical challenges, growth opportunities.",
+      "Show alignment with what this role offers — research the JD carefully.",
+      "Avoid vague answers like 'a good team' or 'interesting work'."
+    ],
+    "example_answer": "I'm looking for three things: genuine ownership of a technical domain rather than just executing on a backlog, a team that treats engineering quality seriously and invests in it, and a problem that's hard enough that I'll be learning for the next two to three years. The scope of this role and the technical challenges I've seen in your job description tick all three boxes."
+  },
+  {
+    "id": 11,
+    "question": "How do you handle work-life balance?",
+    "tips": [
+      "Be honest about your expectations — don't promise unsustainable availability.",
+      "Show you can be effective without burning out yourself or your team.",
+      "If relevant, share a concrete example of setting boundaries that led to better outcomes."
+    ],
+    "example_answer": "I'm most effective when I'm well-rested and thinking clearly, so I protect my evenings except in genuine emergencies. I've found that setting clear working hours actually makes me more productive during those hours. In my current role I introduced an on-call rota precisely because the old model of 'whoever notices the alert responds' was burning people out and leading to more incidents, not fewer."
+  },
+  {
+    "id": 12,
+    "question": "Are you interviewing elsewhere?",
+    "tips": [
+      "Be honest — this is a normal and expected question.",
+      "You don't need to name companies, but confirming you're active signals you're in demand.",
+      "If you have a competing offer, mention it without using it as a bluff."
+    ],
+    "example_answer": "Yes, I'm at various stages with a few companies. I'm being deliberate — I'm only pursuing roles that match what I'm looking for, so the pipeline is small but focused. This role is one I'm genuinely excited about, which is why I applied early and have been preparing carefully."
+  },
+  {
+    "id": 13,
+    "question": "What motivates you?",
+    "tips": [
+      "Be genuine — interviewers can tell if this is a rehearsed non-answer.",
+      "Tie your motivation to something this company or role can provide.",
+      "Use a short story or example to make it concrete."
+    ],
+    "example_answer": "I'm most motivated when I can see the direct impact of my work. My favourite moment in any project is when a system I built starts handling real traffic and the metrics move in the right direction. Solving hard engineering problems is part of it, but what really energises me is knowing the work matters to the people using it."
+  },
+  {
+    "id": 14,
+    "question": "What do you enjoy most about your current or previous role?",
+    "tips": [
+      "Choose something you'll find at this new company too — align your enthusiasm.",
+      "Be specific: a type of problem, a collaboration pattern, a team dynamic.",
+      "Avoid answers that reveal frustrations with the current role."
+    ],
+    "example_answer": "What I enjoy most is debugging complex distributed systems failures. There's a particular satisfaction in tracing an intermittent bug through multiple services and finding the root cause — it's almost like solving a puzzle with real stakes. I also really enjoy the technical discussions we have before committing to an architectural approach; the depth of thinking in those conversations is something I'd want to replicate in a new team."
+  },
+  {
+    "id": 15,
+    "question": "What do you enjoy least about your current role?",
+    "tips": [
+      "Be honest but measured — don't vent.",
+      "Choose something that won't be a feature of the new role.",
+      "Frame it constructively: what you've tried to improve or what you're looking to change."
+    ],
+    "example_answer": "The thing I find least fulfilling is context-switching between too many initiatives simultaneously. We're a small team covering a very broad surface area, and I often feel I can't give any single problem the depth it deserves. One of the things that appeals to me about this role is the more focused scope — owning a specific platform rather than being spread across everything."
+  },
+  {
+    "id": 16,
+    "question": "What type of work environment do you prefer?",
+    "tips": [
+      "Be honest — a mismatch here will make you unhappy even if you get the job.",
+      "Show you've thought about how you work best, not just what sounds good.",
+      "If the company is remote-first or hybrid, align your answer to that if it's true."
+    ],
+    "example_answer": "I do my best deep work in a quiet, focused environment — I need uninterrupted blocks for complex problems. That said, I value a team that communicates asynchronously by default but comes together for key discussions synchronously. I've found I'm equally effective remote or in-office as long as the culture supports focused work and collaboration is intentional rather than constant."
+  },
+  {
+    "id": 17,
+    "question": "How do you prefer to be managed?",
+    "tips": [
+      "Be honest — this helps both sides assess fit.",
+      "Show self-awareness: you know what brings out your best.",
+      "Avoid anything that sounds like you don't want oversight at all."
+    ],
+    "example_answer": "I work best when I have clear goals and the autonomy to decide how to achieve them. I appreciate a manager who provides context and removes blockers rather than dictating implementation details. Regular one-on-ones are important to me — I value candid feedback and a space to raise concerns early. I don't need hand-holding, but I do appreciate being challenged and having my thinking pushed."
+  },
+  {
+    "id": 18,
+    "question": "What is your notice period?",
+    "tips": [
+      "State your contractual notice period clearly.",
+      "If you're willing to negotiate or start earlier, mention it.",
+      "If your notice is long, acknowledge it and explain how you'll handle the transition."
+    ],
+    "example_answer": "My contractual notice period is three months. I plan to serve it in full to hand over my work properly — I don't want to leave the team in a difficult position. That said, I'm happy to start onboarding paperwork and any pre-start reading in parallel, so the productive start date could effectively be sooner."
+  },
+  {
+    "id": 19,
+    "question": "Do you have any questions for us?",
+    "tips": [
+      "Always have three or four questions prepared — saying 'no' signals disengagement.",
+      "Ask about things that genuinely matter to you: team, technical stack, growth, process.",
+      "Avoid asking things easily found on the website or job description."
+    ],
+    "example_answer": "Yes — three things. First, what does the on-call setup look like and how is the burden shared across the team? Second, what's the biggest technical challenge the team expects to face in the next twelve months? And third, how does engineering influence the product roadmap — do engineers contribute to shaping what gets built, or are they primarily executing a predetermined backlog?"
+  },
+  {
+    "id": 20,
+    "question": "How do you stay up to date with technology?",
+    "tips": [
+      "Be specific: name sources, communities, or practices you actually use.",
+      "Show you apply what you learn — not just passive reading.",
+      "Mention anything where you've contributed back: talks, blog posts, open source."
+    ],
+    "example_answer": "I follow a handful of engineering blogs closely — particularly Cloudflare, Figma, and Stripe's engineering posts because they write about real production problems at scale. I also review the DDIA book and related papers whenever I'm designing something new. When I learn something applicable, I try to run a spike or write an internal RFC so it becomes practical knowledge rather than just absorbed information."
+  }
+]

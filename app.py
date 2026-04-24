@@ -13,6 +13,8 @@ PRACTICE_FILE = os.path.join(os.path.dirname(__file__), "data", "practice.json")
 SYSTEM_DESIGN_FILE = os.path.join(os.path.dirname(__file__), "data", "system_design.json")
 CHALLENGES_FILE = os.path.join(os.path.dirname(__file__), "data", "challenges.json")
 CHALLENGES_PROGRESS_FILE = os.path.join(os.path.dirname(__file__), "data", "challenges_progress.json")
+RECRUITER_QUESTIONS_FILE = os.path.join(os.path.dirname(__file__), "data", "recruiter_questions.json")
+RECRUITER_PRACTICE_FILE = os.path.join(os.path.dirname(__file__), "data", "recruiter_practice.json")
 
 
 def load_data():
@@ -75,6 +77,23 @@ def load_challenges_progress():
 
 def save_challenges_progress(data):
     with open(CHALLENGES_PROGRESS_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def load_recruiter_questions():
+    with open(RECRUITER_QUESTIONS_FILE) as f:
+        return json.load(f)
+
+
+def load_recruiter_practice():
+    if not os.path.exists(RECRUITER_PRACTICE_FILE):
+        return {"history": {}}
+    with open(RECRUITER_PRACTICE_FILE) as f:
+        return json.load(f)
+
+
+def save_recruiter_practice(data):
+    with open(RECRUITER_PRACTICE_FILE, "w") as f:
         json.dump(data, f, indent=2)
 
 
@@ -217,6 +236,7 @@ def combined_progress():
     practice = load_practice()
     sd_data = load_system_design()
     ch_progress = load_challenges_progress()
+    rq_practice = load_recruiter_practice()
     today = date.today()
 
     calendar = []
@@ -226,16 +246,21 @@ def combined_progress():
         day_data = practice["history"].get(key, {})
         sd_count = sum(1 for e in sd_data["exercises"] if e.get("date") == key)
         ch_count = sum(1 for v in ch_progress["completed"].values() if v == key)
+        rq_count = len(rq_practice["history"].get(key, {}).get("completed", []))
         calendar.append({
             "date": key,
             "questions_completed": len(day_data.get("completed", [])),
             "questions_total": len(day_data.get("questions", [])) or 3,
             "sd_count": sd_count,
             "ch_count": ch_count,
+            "rq_count": rq_count,
         })
 
     total_questions = sum(
         len(v.get("completed", [])) for v in practice["history"].values()
+    )
+    total_rq = sum(
+        len(v.get("completed", [])) for v in rq_practice["history"].values()
     )
     week_ago = today - timedelta(days=7)
     sd_this_week = sum(
@@ -248,7 +273,9 @@ def combined_progress():
 
     return jsonify({
         "streak": compute_streak(practice["history"]),
+        "rq_streak": compute_streak(rq_practice["history"]),
         "total_questions": total_questions,
+        "total_rq": total_rq,
         "total_sd": len(sd_data["exercises"]),
         "sd_this_week": sd_this_week,
         "challenges_done": challenges_done,
@@ -281,6 +308,60 @@ def toggle_challenge():
         done = True
     save_challenges_progress(progress)
     return jsonify({"done": done, "total_done": len(completed)})
+
+
+@app.route("/api/recruiter/today", methods=["GET"])
+def recruiter_today():
+    questions = load_recruiter_questions()
+    practice = load_recruiter_practice()
+    today = date.today().isoformat()
+
+    rng = _random.Random(int(date.today().strftime("%Y%m%d")) + 1)
+    all_ids = [q["id"] for q in questions]
+    selected_ids = rng.sample(all_ids, 5)
+
+    if today not in practice["history"]:
+        practice["history"][today] = {"questions": selected_ids, "completed": []}
+        save_recruiter_practice(practice)
+    else:
+        selected_ids = practice["history"][today].get("questions", selected_ids)
+
+    q_map = {q["id"]: q for q in questions}
+    selected_questions = [q_map[qid] for qid in selected_ids if qid in q_map]
+    completed = practice["history"][today].get("completed", [])
+
+    return jsonify({
+        "questions": selected_questions,
+        "completed": completed,
+        "streak": compute_streak(practice["history"]),
+    })
+
+
+@app.route("/api/recruiter/complete", methods=["POST"])
+def recruiter_complete():
+    body = request.get_json()
+    question_id = body["question_id"]
+    practice = load_recruiter_practice()
+    today = date.today().isoformat()
+
+    if today not in practice["history"]:
+        practice["history"][today] = {"questions": [], "completed": []}
+
+    if question_id not in practice["history"][today]["completed"]:
+        practice["history"][today]["completed"].append(question_id)
+
+    save_recruiter_practice(practice)
+    return jsonify({"streak": compute_streak(practice["history"])})
+
+
+@app.route("/api/recruiter/reset", methods=["POST"])
+def recruiter_reset():
+    practice = load_recruiter_practice()
+    today = date.today().isoformat()
+    if today in practice["history"]:
+        practice["history"][today]["completed"] = []
+    save_recruiter_practice(practice)
+    return jsonify({"streak": compute_streak(practice["history"])})
 
 
 @app.route("/api/system-design", methods=["GET"])

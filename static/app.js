@@ -14,6 +14,9 @@ let sdLoaded = false;
 let challengesData = [];
 let challengesLoaded = false;
 
+let rqPracticeData = null;
+let rqLoaded = false;
+
 const STATUS_BADGE = {
   'Applied':      'badge-applied',
   'Phone Screen': 'badge-phone-screen',
@@ -56,6 +59,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
+
+  // Recruiter reset
+  document.getElementById('btn-rq-reset').addEventListener('click', rqReset);
 
   // System design
   document.getElementById('btn-add-sd').addEventListener('click', sdOpenAdd);
@@ -344,14 +350,17 @@ function switchTab(tabName) {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tabName);
   });
-  ['tracker', 'practice', 'challenges', 'system-design', 'progress'].forEach(t => {
+  ['tracker', 'practice', 'recruiter', 'challenges', 'system-design', 'progress'].forEach(t => {
     document.getElementById('tab-' + t).classList.toggle('hidden', tabName !== t);
   });
-  document.getElementById('btn-add').classList.toggle('hidden', tabName !== 'tracker');
 
   if (tabName === 'practice' && !practiceLoaded) {
     practiceLoaded = true;
     loadPracticeToday();
+  }
+  if (tabName === 'recruiter' && !rqLoaded) {
+    rqLoaded = true;
+    loadRQToday();
   }
   if (tabName === 'challenges' && !challengesLoaded) {
     challengesLoaded = true;
@@ -458,6 +467,8 @@ async function loadProgress() {
   document.getElementById('prog-sd-week').textContent = data.sd_this_week;
   document.getElementById('prog-challenges').textContent =
     `${data.challenges_done}/${data.challenges_total}`;
+  document.getElementById('prog-rq-streak').textContent = data.rq_streak;
+  document.getElementById('prog-total-rq').textContent = data.total_rq;
   renderCombinedCalendar(data.calendar);
 }
 
@@ -597,14 +608,16 @@ function renderCombinedCalendar(calendar) {
     const qLevel  = Math.min(day.questions_completed, 3);
     const sdLevel = Math.min(day.sd_count, 3);
     const chLevel = Math.min(day.ch_count, 3);
+    const rqLevel = Math.min(day.rq_count, 3);
     return `
       <div class="cal-day ${isToday ? 'cal-today' : ''}">
         <span class="cal-day-name">${dayName}</span>
         <span class="cal-day-num">${dayNum}</span>
         <span class="cal-month-lbl">${month}</span>
-        <div class="cal-dot cal-dot-${qLevel}">${day.questions_completed}/${day.questions_total}</div>
+        <div class="cal-dot cal-dot-${qLevel}">${day.questions_completed > 0 ? '🧠 ' + day.questions_completed + '/' + day.questions_total : '—'}</div>
         <div class="cal-sd-dot cal-sd-dot-${sdLevel}">${day.sd_count > 0 ? '🏗 ' + day.sd_count : '—'}</div>
         <div class="cal-ch-dot cal-ch-dot-${chLevel}">${day.ch_count > 0 ? '💻 ' + day.ch_count : '—'}</div>
+        <div class="cal-rq-dot cal-rq-dot-${rqLevel}">${day.rq_count > 0 ? '🎤 ' + day.rq_count : '—'}</div>
       </div>
     `;
   }).join('');
@@ -705,4 +718,96 @@ async function chToggle(id) {
   const ch = challengesData.find(c => c.id === id);
   if (ch) ch.done = done;
   chRender();
+}
+
+/* ────────────────────────────────────────────
+   RECRUITER / HIRING MANAGER QUESTIONS
+──────────────────────────────────────────── */
+async function loadRQToday() {
+  const res = await fetch('/api/recruiter/today');
+  rqPracticeData = await res.json();
+  rqSetStreak(rqPracticeData.streak);
+  rqRenderQuestions();
+}
+
+function rqSetStreak(n) {
+  document.getElementById('rq-streak-count').textContent = n;
+}
+
+function rqRenderQuestions() {
+  const { questions, completed } = rqPracticeData;
+  const container = document.getElementById('rq-questions-container');
+  const allDone = questions.length > 0 && questions.every(q => completed.includes(q.id));
+
+  container.innerHTML = `
+    <div class="questions-list">
+      ${questions.map((q, i) => rqCardHTML(q, i, completed)).join('')}
+    </div>
+    ${allDone ? `
+      <div class="all-done-msg">
+        <span class="all-done-emoji">🎉</span>
+        <h3>All done for today!</h3>
+        <p>Great work. Come back tomorrow for 5 new questions and keep the streak going.</p>
+      </div>` : ''}
+  `;
+}
+
+function rqCardHTML(q, idx, completed) {
+  const isDone = completed.includes(q.id);
+  return `
+    <div class="q-card ${isDone ? 'q-card-done' : ''}" id="rqcard-${q.id}">
+      <div class="q-card-header">
+        <span class="q-num">Question ${idx + 1} of 5</span>
+        ${isDone ? '<span class="q-badge-done">✓ Done</span>' : ''}
+      </div>
+      <p class="q-text">${esc(q.question)}</p>
+      <div class="q-actions">
+        <button class="btn btn-secondary" id="rqreveal-btn-${q.id}" onclick="rqToggleReveal(${q.id})">
+          💡 Reveal tips &amp; example
+        </button>
+        ${!isDone ? `<button class="btn btn-primary" onclick="rqMarkDone(${q.id})">✓ Mark as done</button>` : ''}
+      </div>
+      <div class="q-reveal hidden" id="rqreveal-${q.id}">
+        <div class="q-tips">
+          <h4>💡 Tips</h4>
+          <ul>${q.tips.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+        </div>
+        <div class="q-example">
+          <h4>📝 Example Answer</h4>
+          <p>${esc(q.example_answer)}</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function rqToggleReveal(id) {
+  const reveal = document.getElementById('rqreveal-' + id);
+  const btn    = document.getElementById('rqreveal-btn-' + id);
+  const nowHidden = reveal.classList.toggle('hidden');
+  btn.textContent = nowHidden ? '💡 Reveal tips & example' : '🙈 Hide tips & example';
+}
+
+async function rqMarkDone(questionId) {
+  const res = await fetch('/api/recruiter/complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question_id: questionId }),
+  });
+  const data = await res.json();
+  rqPracticeData.completed.push(questionId);
+  rqSetStreak(data.streak);
+  rqRenderQuestions();
+}
+
+async function rqReset() {
+  if (!confirm("Reset today's recruiter practice? This clears your completed answers for today.")) return;
+  const res = await fetch('/api/recruiter/reset', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  const data = await res.json();
+  rqPracticeData.completed = [];
+  rqSetStreak(data.streak);
+  rqRenderQuestions();
 }

@@ -15,11 +15,11 @@
       <nav class="tab-nav" id="main-tabs">
         <button class="tab-btn active" data-tab="tracker">📋 Applications</button>
         <button class="tab-btn" data-tab="practice">🧠 Behavioral</button>
+        <button class="tab-btn" data-tab="recruiter">🎤 Recruiter</button>
         <button class="tab-btn" data-tab="challenges">💻 Code Challenges</button>
         <button class="tab-btn" data-tab="system-design">🏗 System Design</button>
         <button class="tab-btn" data-tab="progress">📊 Progress</button>
       </nav>
-      <button id="btn-add" class="btn btn-primary">+ Add Application</button>
     </div>
   </header>
 
@@ -34,6 +34,7 @@
 
       <!-- Filters -->
       <div class="toolbar">
+        <button id="btn-add" class="btn btn-primary">+ Add Application</button>
         <input type="text" id="search-input" placeholder="Search company or role…" />
         <select id="status-filter">
           <option value="">All statuses</option>
@@ -79,6 +80,19 @@
     <div class="practice-wrapper">
       <div class="streak-display">🔥 <span id="streak-count">0</span> day streak</div>
       <div id="questions-container">
+        <p class="loading-msg">Loading today's questions…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recruiter / Hiring Manager tab -->
+  <div id="tab-recruiter" class="hidden">
+    <div class="practice-wrapper">
+      <div class="practice-top-bar">
+        <div class="streak-display">🔥 <span id="rq-streak-count">0</span> day streak</div>
+        <button class="btn btn-secondary" id="btn-rq-reset">↺ Reset today</button>
+      </div>
+      <div id="rq-questions-container">
         <p class="loading-msg">Loading today's questions…</p>
       </div>
     </div>
@@ -175,6 +189,14 @@
           <div class="stat-value" id="prog-challenges">0</div>
           <div class="stat-label">💻 Challenges Done</div>
         </div>
+        <div class="stat-card">
+          <div class="stat-value" id="prog-rq-streak">0</div>
+          <div class="stat-label">🎤 Recruiter Streak</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="prog-total-rq">0</div>
+          <div class="stat-label">🎤 Recruiter Answered</div>
+        </div>
       </div>
       <div class="calendar-section">
         <h3>Last 7 Days</h3>
@@ -183,6 +205,7 @@
           <span class="legend-item"><span class="legend-dot legend-q"></span> Questions</span>
           <span class="legend-item"><span class="legend-dot legend-sd"></span> System Design</span>
           <span class="legend-item"><span class="legend-dot legend-ch"></span> Code Challenges</span>
+          <span class="legend-item"><span class="legend-dot legend-rq"></span> Recruiter Prep</span>
         </div>
       </div>
     </div>
