@@ -1,4 +1,5 @@
 import json
+import sqlite3
 from datetime import date, timedelta
 
 import app as app_module
@@ -287,3 +288,24 @@ def test_challenges_progress_migrates_list_format(tmp_data):
     data = app_module.load_challenges_progress()
     assert isinstance(data["completed"], dict)
     assert set(data["completed"].keys()) == {"1", "2", "3"}
+
+
+def test_legacy_interviews_are_imported_once(tmp_data):
+    legacy_file = tmp_data / "interviews.json"
+    legacy_file.write_text(json.dumps([{"id": "1", "company_name": "Acme"}]))
+
+    assert app_module.load_data()[0]["company_name"] == "Acme"
+
+    legacy_file.write_text(json.dumps([]))
+    assert app_module.load_data()[0]["company_name"] == "Acme"
+
+
+def test_data_is_saved_in_sqlite(tmp_data):
+    app_module.save_data([{"id": "1", "company_name": "Acme"}])
+
+    with sqlite3.connect(tmp_data / "tracker.db") as connection:
+        row = connection.execute(
+            "SELECT value FROM app_state WHERE key = 'interviews'"
+        ).fetchone()
+
+    assert json.loads(row[0]) == [{"id": "1", "company_name": "Acme"}]

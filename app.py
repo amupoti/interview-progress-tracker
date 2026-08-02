@@ -4,10 +4,12 @@ import random as _random
 import uuid
 from datetime import date, timedelta
 from flask import Flask, jsonify, request, render_template
+from storage import load_state, save_state
 
 app = Flask(__name__)
 
 DATA_FILE = os.path.join(os.path.dirname(__file__), "data", "interviews.json")
+DATABASE_FILE = os.path.join(os.path.dirname(__file__), "data", "tracker.db")
 QUESTIONS_FILE = os.path.join(os.path.dirname(__file__), "data", "questions.json")
 PRACTICE_FILE = os.path.join(os.path.dirname(__file__), "data", "practice.json")
 SYSTEM_DESIGN_FILE = os.path.join(os.path.dirname(__file__), "data", "system_design.json")
@@ -18,15 +20,11 @@ RECRUITER_PRACTICE_FILE = os.path.join(os.path.dirname(__file__), "data", "recru
 
 
 def load_data():
-    if not os.path.exists(DATA_FILE):
-        return []
-    with open(DATA_FILE, "r") as f:
-        return json.load(f)
+    return load_state(DATABASE_FILE, "interviews", [], DATA_FILE)
 
 
 def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=2)
+    save_state(DATABASE_FILE, "interviews", data)
 
 
 def load_questions():
@@ -35,27 +33,21 @@ def load_questions():
 
 
 def load_practice():
-    if not os.path.exists(PRACTICE_FILE):
-        return {"history": {}}
-    with open(PRACTICE_FILE) as f:
-        return json.load(f)
+    return load_state(DATABASE_FILE, "practice", {"history": {}}, PRACTICE_FILE)
 
 
 def save_practice(data):
-    with open(PRACTICE_FILE, "w") as f:
-        json.dump(data, f, indent=2)
+    save_state(DATABASE_FILE, "practice", data)
 
 
 def load_system_design():
-    if not os.path.exists(SYSTEM_DESIGN_FILE):
-        return {"exercises": []}
-    with open(SYSTEM_DESIGN_FILE) as f:
-        return json.load(f)
+    return load_state(
+        DATABASE_FILE, "system_design", {"exercises": []}, SYSTEM_DESIGN_FILE
+    )
 
 
 def save_system_design(data):
-    with open(SYSTEM_DESIGN_FILE, "w") as f:
-        json.dump(data, f, indent=2)
+    save_state(DATABASE_FILE, "system_design", data)
 
 
 def load_challenges():
@@ -64,10 +56,12 @@ def load_challenges():
 
 
 def load_challenges_progress():
-    if not os.path.exists(CHALLENGES_PROGRESS_FILE):
-        return {"completed": {}}
-    with open(CHALLENGES_PROGRESS_FILE) as f:
-        data = json.load(f)
+    data = load_state(
+        DATABASE_FILE,
+        "challenges_progress",
+        {"completed": {}},
+        CHALLENGES_PROGRESS_FILE,
+    )
     # migrate old list format → {id: date} dict
     if isinstance(data.get("completed"), list):
         data["completed"] = {str(i): date.today().isoformat() for i in data["completed"]}
@@ -76,8 +70,7 @@ def load_challenges_progress():
 
 
 def save_challenges_progress(data):
-    with open(CHALLENGES_PROGRESS_FILE, "w") as f:
-        json.dump(data, f, indent=2)
+    save_state(DATABASE_FILE, "challenges_progress", data)
 
 
 def load_recruiter_questions():
@@ -86,15 +79,16 @@ def load_recruiter_questions():
 
 
 def load_recruiter_practice():
-    if not os.path.exists(RECRUITER_PRACTICE_FILE):
-        return {"history": {}}
-    with open(RECRUITER_PRACTICE_FILE) as f:
-        return json.load(f)
+    return load_state(
+        DATABASE_FILE,
+        "recruiter_practice",
+        {"history": {}},
+        RECRUITER_PRACTICE_FILE,
+    )
 
 
 def save_recruiter_practice(data):
-    with open(RECRUITER_PRACTICE_FILE, "w") as f:
-        json.dump(data, f, indent=2)
+    save_state(DATABASE_FILE, "recruiter_practice", data)
 
 
 def compute_streak(history):

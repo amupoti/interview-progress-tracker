@@ -15,6 +15,7 @@ def tmp_data(tmp_path, monkeypatch):
         shutil.copy(DATA_DIR / fname, tmp_path / fname)
 
     monkeypatch.setattr(app_module, "DATA_FILE",                str(tmp_path / "interviews.json"))
+    monkeypatch.setattr(app_module, "DATABASE_FILE",            str(tmp_path / "tracker.db"))
     monkeypatch.setattr(app_module, "QUESTIONS_FILE",           str(tmp_path / "questions.json"))
     monkeypatch.setattr(app_module, "PRACTICE_FILE",            str(tmp_path / "practice.json"))
     monkeypatch.setattr(app_module, "SYSTEM_DESIGN_FILE",       str(tmp_path / "system_design.json"))

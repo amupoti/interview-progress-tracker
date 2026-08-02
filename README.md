@@ -19,7 +19,8 @@ python3 app.py
 
 Then open **http://localhost:5000** in your browser.
 
-Data is automatically saved to `data/interviews.json` on every change.
+Mutable data is automatically saved to the local SQLite database at `data/tracker.db`.
+Existing JSON data is imported automatically the first time each data set is accessed.
 
 ## Features
 
@@ -55,7 +56,8 @@ Data is automatically saved to `data/interviews.json` on every change.
 interviewProgress/
 ├── app.py               # Flask backend (REST API)
 ├── data/
-│   └── interviews.json  # Persisted data (auto-created)
+│   ├── tracker.db        # Persisted mutable data (auto-created)
+│   └── *.json            # Read-only catalogs and legacy import files
 ├── static/
 │   ├── app.js           # Frontend logic
 │   └── style.css        # Styles
