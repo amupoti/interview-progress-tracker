@@ -17,6 +17,8 @@ CHALLENGES_FILE = os.path.join(os.path.dirname(__file__), "data", "challenges.js
 CHALLENGES_PROGRESS_FILE = os.path.join(os.path.dirname(__file__), "data", "challenges_progress.json")
 RECRUITER_QUESTIONS_FILE = os.path.join(os.path.dirname(__file__), "data", "recruiter_questions.json")
 RECRUITER_PRACTICE_FILE = os.path.join(os.path.dirname(__file__), "data", "recruiter_practice.json")
+COMPANIES_FILE = os.path.join(os.path.dirname(__file__), "data", "companies.json")
+JOBS_FILE = os.path.join(os.path.dirname(__file__), "data", "jobs.json")
 
 
 def load_data():
@@ -89,6 +91,22 @@ def load_recruiter_practice():
 
 def save_recruiter_practice(data):
     save_state(DATABASE_FILE, "recruiter_practice", data)
+
+
+def load_companies():
+    return load_state(DATABASE_FILE, "companies", {"companies": []}, COMPANIES_FILE)
+
+
+def save_companies(data):
+    save_state(DATABASE_FILE, "companies", data)
+
+
+def load_jobs():
+    return load_state(DATABASE_FILE, "jobs", {"jobs": []}, JOBS_FILE)
+
+
+def save_jobs(data):
+    save_state(DATABASE_FILE, "jobs", data)
 
 
 def compute_streak(history):
@@ -399,5 +417,83 @@ def delete_system_design(entry_id):
     return "", 204
 
 
+@app.route("/api/companies", methods=["GET"])
+def list_companies():
+    return jsonify(load_companies()["companies"])
+
+
+@app.route("/api/companies", methods=["POST"])
+def create_company():
+    data = load_companies()
+    entry = request.get_json()
+    entry["id"] = str(uuid.uuid4())
+    data["companies"].append(entry)
+    save_companies(data)
+    return jsonify(entry), 201
+
+
+@app.route("/api/companies/<entry_id>", methods=["PUT"])
+def update_company(entry_id):
+    data = load_companies()
+    for i, entry in enumerate(data["companies"]):
+        if entry["id"] == entry_id:
+            updated = request.get_json()
+            updated["id"] = entry_id
+            data["companies"][i] = updated
+            save_companies(data)
+            return jsonify(updated)
+    return jsonify({"error": "Not found"}), 404
+
+
+@app.route("/api/companies/<entry_id>", methods=["DELETE"])
+def delete_company(entry_id):
+    data = load_companies()
+    new_companies = [e for e in data["companies"] if e["id"] != entry_id]
+    if len(new_companies) == len(data["companies"]):
+        return jsonify({"error": "Not found"}), 404
+    data["companies"] = new_companies
+    save_companies(data)
+    return "", 204
+
+
+@app.route("/api/jobs", methods=["GET"])
+def list_jobs():
+    return jsonify(load_jobs()["jobs"])
+
+
+@app.route("/api/jobs", methods=["POST"])
+def create_job():
+    data = load_jobs()
+    entry = request.get_json()
+    entry["id"] = str(uuid.uuid4())
+    data["jobs"].append(entry)
+    save_jobs(data)
+    return jsonify(entry), 201
+
+
+@app.route("/api/jobs/<entry_id>", methods=["PUT"])
+def update_job(entry_id):
+    data = load_jobs()
+    for i, entry in enumerate(data["jobs"]):
+        if entry["id"] == entry_id:
+            updated = request.get_json()
+            updated["id"] = entry_id
+            data["jobs"][i] = updated
+            save_jobs(data)
+            return jsonify(updated)
+    return jsonify({"error": "Not found"}), 404
+
+
+@app.route("/api/jobs/<entry_id>", methods=["DELETE"])
+def delete_job(entry_id):
+    data = load_jobs()
+    new_jobs = [e for e in data["jobs"] if e["id"] != entry_id]
+    if len(new_jobs) == len(data["jobs"]):
+        return jsonify({"error": "Not found"}), 404
+    data["jobs"] = new_jobs
+    save_jobs(data)
+    return "", 204
+
+
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5001)

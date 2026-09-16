@@ -280,6 +280,122 @@ def test_delete_system_design_not_found(client):
     assert res.status_code == 404
 
 
+# ── Companies of interest ─────────────────────────────────────────────────────
+
+def test_list_companies_empty(client):
+    res = client.get("/api/companies")
+    assert res.status_code == 200
+    assert res.get_json() == []
+
+
+def test_create_company(client):
+    payload = {
+        "company_name": "Acme",
+        "url": "https://acme.example.com",
+        "benefits": "Unlimited PTO",
+        "contacts": [{"name": "Jane Doe", "title": "Recruiter", "email": "jane@acme.example.com"}],
+    }
+    res = client.post("/api/companies", json=payload)
+    assert res.status_code == 201
+    data = res.get_json()
+    assert data["company_name"] == "Acme"
+    assert "id" in data
+    assert data["contacts"][0]["name"] == "Jane Doe"
+
+
+def test_create_then_list_company(client):
+    client.post("/api/companies", json={"company_name": "Acme"})
+    res = client.get("/api/companies")
+    assert len(res.get_json()) == 1
+
+
+def test_update_company(client):
+    created = client.post("/api/companies", json={"company_name": "Acme"}).get_json()
+    entry_id = created["id"]
+    res = client.put(f"/api/companies/{entry_id}", json={"company_name": "Globex"})
+    assert res.status_code == 200
+    assert res.get_json()["company_name"] == "Globex"
+
+
+def test_update_company_not_found(client):
+    res = client.put("/api/companies/nonexistent", json={"company_name": "X"})
+    assert res.status_code == 404
+
+
+def test_delete_company(client):
+    created = client.post("/api/companies", json={"company_name": "Acme"}).get_json()
+    entry_id = created["id"]
+    res = client.delete(f"/api/companies/{entry_id}")
+    assert res.status_code == 204
+    assert client.get("/api/companies").get_json() == []
+
+
+def test_delete_company_not_found(client):
+    res = client.delete("/api/companies/nonexistent")
+    assert res.status_code == 404
+
+
+# ── Jobs ───────────────────────────────────────────────────────────────────
+
+def test_list_jobs_empty(client):
+    res = client.get("/api/jobs")
+    assert res.status_code == 200
+    assert res.get_json() == []
+
+
+def test_create_job(client):
+    payload = {
+        "company": "Acme",
+        "title": "Staff Software Engineer",
+        "location": "Barcelona, Spain",
+        "work_mode": "Hybrid",
+        "link": "https://linkedin.com/jobs/view/123",
+        "glassdoor_rating": 4.2,
+        "glassdoor_notes": "Good WLB, slow promo track",
+        "status": "Interested",
+        "date_added": "2026-09-16",
+        "notes": "Referral from ex-colleague",
+    }
+    res = client.post("/api/jobs", json=payload)
+    assert res.status_code == 201
+    data = res.get_json()
+    assert data["company"] == "Acme"
+    assert "id" in data
+    assert data["work_mode"] == "Hybrid"
+
+
+def test_create_then_list_job(client):
+    client.post("/api/jobs", json={"company": "Acme", "title": "Staff SWE"})
+    res = client.get("/api/jobs")
+    assert len(res.get_json()) == 1
+
+
+def test_update_job(client):
+    created = client.post("/api/jobs", json={"company": "Acme", "title": "Staff SWE"}).get_json()
+    entry_id = created["id"]
+    res = client.put(f"/api/jobs/{entry_id}", json={"company": "Globex", "title": "Staff SWE"})
+    assert res.status_code == 200
+    assert res.get_json()["company"] == "Globex"
+
+
+def test_update_job_not_found(client):
+    res = client.put("/api/jobs/nonexistent", json={"company": "X"})
+    assert res.status_code == 404
+
+
+def test_delete_job(client):
+    created = client.post("/api/jobs", json={"company": "Acme", "title": "Staff SWE"}).get_json()
+    entry_id = created["id"]
+    res = client.delete(f"/api/jobs/{entry_id}")
+    assert res.status_code == 204
+    assert client.get("/api/jobs").get_json() == []
+
+
+def test_delete_job_not_found(client):
+    res = client.delete("/api/jobs/nonexistent")
+    assert res.status_code == 404
+
+
 # ── Challenges progress migration ─────────────────────────────────────────────
 
 def test_challenges_progress_migrates_list_format(tmp_data):

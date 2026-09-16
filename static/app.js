@@ -17,6 +17,17 @@ let challengesLoaded = false;
 let rqPracticeData = null;
 let rqLoaded = false;
 
+let companies = [];
+let coEditingId = null;
+let coLoaded = false;
+let coContactCount = 0;
+
+let jobs = [];
+let jobsEditingId = null;
+let jobsLoaded = false;
+let jobsSortCol = null;
+let jobsSortDir = 'asc';
+
 const STATUS_BADGE = {
   'Applied':      'badge-applied',
   'Phone Screen': 'badge-phone-screen',
@@ -26,6 +37,22 @@ const STATUS_BADGE = {
   'Accepted':     'badge-accepted',
   'Rejected':     'badge-rejected',
   'Declined':     'badge-declined',
+};
+
+const JOB_STATUS_BADGE = {
+  'Pending':      'badge-pending',
+  'Interested':   'badge-interested',
+  'Applied':      'badge-applied',
+  'Interviewing': 'badge-interviewing',
+  'Offer':        'badge-offer',
+  'Rejected':     'badge-rejected',
+  'Discarded':    'badge-discarded',
+};
+
+const WORK_MODE_BADGE = {
+  'Remote': 'badge-remote',
+  'Hybrid': 'badge-hybrid',
+  'Onsite': 'badge-onsite',
 };
 
 /* ── Init ── */
@@ -42,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('search-input').addEventListener('input', renderTable);
   document.getElementById('status-filter').addEventListener('change', renderTable);
 
-  document.querySelectorAll('th[data-col]').forEach(th => {
+  document.querySelectorAll('#interviews-table th[data-col]').forEach(th => {
     th.addEventListener('click', () => {
       const col = th.dataset.col;
       if (sortCol === col) {
@@ -71,6 +98,40 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === e.currentTarget) sdCloseModal();
   });
   document.getElementById('sd-form').addEventListener('submit', sdHandleSubmit);
+
+  // Companies of interest
+  document.getElementById('btn-add-co').addEventListener('click', coOpenAdd);
+  document.getElementById('co-btn-cancel').addEventListener('click', coCloseModal);
+  document.getElementById('co-modal-close').addEventListener('click', coCloseModal);
+  document.getElementById('co-modal-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) coCloseModal();
+  });
+  document.getElementById('co-form').addEventListener('submit', coHandleSubmit);
+  document.getElementById('co-btn-add-contact').addEventListener('click', () => coAddContactRow());
+  document.getElementById('co-search').addEventListener('input', coRender);
+
+  // Jobs
+  document.getElementById('btn-add-job').addEventListener('click', jobsOpenAdd);
+  document.getElementById('jobs-btn-cancel').addEventListener('click', jobsCloseModal);
+  document.getElementById('jobs-modal-close').addEventListener('click', jobsCloseModal);
+  document.getElementById('jobs-modal-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) jobsCloseModal();
+  });
+  document.getElementById('jobs-form').addEventListener('submit', jobsHandleSubmit);
+  document.getElementById('jobs-search').addEventListener('input', jobsRender);
+  document.getElementById('jobs-work-mode-filter').addEventListener('change', jobsRender);
+  document.querySelectorAll('#jobs-table th[data-col]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (jobsSortCol === col) {
+        jobsSortDir = jobsSortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        jobsSortCol = col;
+        jobsSortDir = 'asc';
+      }
+      jobsRender();
+    });
+  });
 });
 
 /* ── API ── */
@@ -130,7 +191,7 @@ function renderTable() {
   });
 
   // Update sort indicators
-  document.querySelectorAll('th[data-col]').forEach(th => {
+  document.querySelectorAll('#interviews-table th[data-col]').forEach(th => {
     th.classList.remove('sort-asc', 'sort-desc');
     if (th.dataset.col === sortCol) {
       th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
@@ -350,7 +411,7 @@ function switchTab(tabName) {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tabName);
   });
-  ['tracker', 'practice', 'recruiter', 'challenges', 'system-design', 'progress'].forEach(t => {
+  ['tracker', 'practice', 'recruiter', 'challenges', 'system-design', 'companies', 'jobs', 'progress'].forEach(t => {
     document.getElementById('tab-' + t).classList.toggle('hidden', tabName !== t);
   });
 
@@ -369,6 +430,14 @@ function switchTab(tabName) {
   if (tabName === 'system-design' && !sdLoaded) {
     sdLoaded = true;
     sdFetchExercises();
+  }
+  if (tabName === 'companies' && !coLoaded) {
+    coLoaded = true;
+    coFetchCompanies();
+  }
+  if (tabName === 'jobs' && !jobsLoaded) {
+    jobsLoaded = true;
+    jobsFetchJobs();
   }
   if (tabName === 'progress') {
     loadProgress();
@@ -810,4 +879,395 @@ async function rqReset() {
   rqPracticeData.completed = [];
   rqSetStreak(data.streak);
   rqRenderQuestions();
+}
+
+/* ────────────────────────────────────────────
+   COMPANIES OF INTEREST
+──────────────────────────────────────────── */
+async function coFetchCompanies() {
+  const res = await fetch('/api/companies');
+  companies = await res.json();
+  coRender();
+}
+
+function coRender() {
+  const search = document.getElementById('co-search').value.toLowerCase();
+
+  const rows = companies.filter(c => {
+    if (!search) return true;
+    const contactText = (c.contacts || []).map(p => `${p.name || ''} ${p.title || ''} ${p.email || ''}`).join(' ');
+    const haystack = `${c.company_name || ''} ${c.industry || ''} ${c.location || ''} ${c.benefits || ''} ${contactText}`.toLowerCase();
+    return haystack.includes(search);
+  });
+
+  const tbody = document.getElementById('co-tbody');
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr id="co-empty-row"><td colspan="5" class="empty-msg">${companies.length === 0 ? 'No companies yet. Click "+ Add Company" to get started.' : 'No companies match your search.'}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(c => `
+    <tr>
+      <td>
+        <strong>${esc(c.company_name)}</strong>
+        ${c.url ? `<br/><a href="${esc(c.url)}" target="_blank" style="font-size:12px;color:#4f46e5;">↗ site</a>` : ''}
+        ${c.industry ? `<br/><span style="font-size:12px;color:#64748b;">${esc(c.industry)}</span>` : ''}
+        ${c.location ? `<br/><span style="font-size:12px;color:#64748b;">📍 ${esc(c.location)}</span>` : ''}
+      </td>
+      <td>${coContactsCellHTML(c.contacts)}</td>
+      <td style="max-width:240px;white-space:pre-wrap;">${esc(c.benefits || '—')}</td>
+      <td>${stars(c.interest_level)}</td>
+      <td>
+        <div class="actions">
+          <button class="btn-icon" title="Edit" onclick="coOpenEdit('${c.id}')">✏️</button>
+          <button class="btn-icon danger" title="Delete" onclick="coConfirmDelete('${c.id}')">🗑</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function coContactsCellHTML(contacts) {
+  if (!contacts || contacts.length === 0) return '—';
+  return `<div class="co-contacts-cell">${contacts.map(p => `
+    <div class="co-contact-chip">
+      <strong>${esc(p.name || '—')}</strong>${p.title ? ' · ' + esc(p.title) : ''}
+      ${p.email ? `<br/>${esc(p.email)}` : ''}
+    </div>
+  `).join('')}</div>`;
+}
+
+function coOpenAdd() {
+  coEditingId = null;
+  document.getElementById('co-modal-title').textContent = 'Add Company';
+  document.getElementById('co-form').reset();
+  document.getElementById('co-f-id').value = '';
+  document.getElementById('co-contacts-list').innerHTML = '';
+  coContactCount = 0;
+  coAddContactRow();
+  clearInvalid();
+  document.getElementById('co-modal-overlay').classList.remove('hidden');
+}
+
+function coOpenEdit(id) {
+  const c = companies.find(x => x.id === id);
+  if (!c) return;
+  coEditingId = id;
+  document.getElementById('co-modal-title').textContent = 'Edit Company';
+  document.getElementById('co-f-id').value = id;
+  document.getElementById('co-f-company_name').value = c.company_name || '';
+  document.getElementById('co-f-url').value = c.url || '';
+  document.getElementById('co-f-industry').value = c.industry || '';
+  document.getElementById('co-f-location').value = c.location || '';
+  document.getElementById('co-f-interest_level').value = c.interest_level || '';
+  document.getElementById('co-f-benefits').value = c.benefits || '';
+  document.getElementById('co-f-notes').value = c.notes || '';
+
+  document.getElementById('co-contacts-list').innerHTML = '';
+  coContactCount = 0;
+  const contacts = c.contacts && c.contacts.length ? c.contacts : [{}];
+  contacts.forEach(p => coAddContactRow(p));
+
+  clearInvalid();
+  document.getElementById('co-modal-overlay').classList.remove('hidden');
+}
+
+function coCloseModal() {
+  document.getElementById('co-modal-overlay').classList.add('hidden');
+  coEditingId = null;
+}
+
+function coAddContactRow(contact = {}) {
+  const rowId = coContactCount++;
+  const row = document.createElement('div');
+  row.className = 'co-contact-row';
+  row.dataset.rowId = rowId;
+  row.innerHTML = `
+    <input type="text" class="co-contact-name" placeholder="Name" value="${esc(contact.name || '')}" />
+    <input type="text" class="co-contact-title" placeholder="Title / Role" value="${esc(contact.title || '')}" />
+    <input type="email" class="co-contact-email" placeholder="Email" value="${esc(contact.email || '')}" />
+    <button type="button" class="btn-icon danger" title="Remove contact" onclick="coRemoveContactRow(${rowId})">🗑</button>
+  `;
+  document.getElementById('co-contacts-list').appendChild(row);
+}
+
+function coRemoveContactRow(rowId) {
+  const row = document.querySelector(`.co-contact-row[data-row-id="${rowId}"]`);
+  if (row) row.remove();
+}
+
+function coCollectContacts() {
+  return [...document.querySelectorAll('.co-contact-row')]
+    .map(row => ({
+      name:  row.querySelector('.co-contact-name').value.trim(),
+      title: row.querySelector('.co-contact-title').value.trim(),
+      email: row.querySelector('.co-contact-email').value.trim(),
+    }))
+    .filter(p => p.name || p.title || p.email);
+}
+
+async function coHandleSubmit(evt) {
+  evt.preventDefault();
+  const nameEl = document.getElementById('co-f-company_name');
+  if (!nameEl.value.trim()) {
+    nameEl.classList.add('invalid');
+    nameEl.focus();
+    return;
+  }
+  nameEl.classList.remove('invalid');
+
+  const entry = {
+    company_name:   nameEl.value.trim(),
+    url:            document.getElementById('co-f-url').value.trim(),
+    industry:       document.getElementById('co-f-industry').value.trim(),
+    location:       document.getElementById('co-f-location').value.trim(),
+    interest_level: toNum(document.getElementById('co-f-interest_level').value),
+    benefits:       document.getElementById('co-f-benefits').value.trim(),
+    notes:          document.getElementById('co-f-notes').value.trim(),
+    contacts:       coCollectContacts(),
+  };
+
+  if (coEditingId) {
+    const res = await fetch(`/api/companies/${coEditingId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry),
+    });
+    const saved = await res.json();
+    companies = companies.map(x => x.id === coEditingId ? saved : x);
+  } else {
+    const res = await fetch('/api/companies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry),
+    });
+    const saved = await res.json();
+    companies.push(saved);
+  }
+
+  coCloseModal();
+  coRender();
+}
+
+async function coConfirmDelete(id) {
+  const c = companies.find(x => x.id === id);
+  if (!c) return;
+  if (!confirm(`Delete "${c.company_name}" from your companies list?`)) return;
+  await fetch(`/api/companies/${id}`, { method: 'DELETE' });
+  companies = companies.filter(x => x.id !== id);
+  coRender();
+}
+
+/* ────────────────────────────────────────────
+   JOBS
+──────────────────────────────────────────── */
+async function jobsFetchJobs() {
+  const fetches = [fetch('/api/jobs')];
+  if (!coLoaded) {
+    coLoaded = true;
+    fetches.push(fetch('/api/companies'));
+  }
+  const results = await Promise.all(fetches);
+  jobs = await results[0].json();
+  if (results[1]) {
+    companies = await results[1].json();
+    coRender();
+  }
+  jobsRender();
+}
+
+function jobContacts(companyName) {
+  if (!companyName) return [];
+  const needle = companyName.trim().toLowerCase();
+  const co = companies.find(c => (c.company_name || '').trim().toLowerCase() === needle);
+  if (!co || !co.contacts) return [];
+  return co.contacts.filter(p => p.name && p.name.trim());
+}
+
+function jobsColValue(j, col) {
+  switch (col) {
+    case 'company':          return (j.company || '').toLowerCase();
+    case 'location':         return (j.location || '').toLowerCase();
+    case 'glassdoor_rating': return j.glassdoor_rating != null && j.glassdoor_rating !== '' ? Number(j.glassdoor_rating) : -1;
+    case 'status':           return (j.status || '').toLowerCase();
+    case 'date_added':       return j.date_added || '';
+    default:                 return '';
+  }
+}
+
+function jobsRender() {
+  const search = document.getElementById('jobs-search').value.toLowerCase();
+  const workModeFilter = document.getElementById('jobs-work-mode-filter').value;
+
+  const rows = jobs.filter(j => {
+    if (workModeFilter && j.work_mode !== workModeFilter) return false;
+    if (!search) return true;
+    const haystack = `${j.company || ''} ${j.title || ''} ${j.location || ''} ${j.notes || ''} ${j.glassdoor_notes || ''}`.toLowerCase();
+    return haystack.includes(search);
+  });
+
+  if (jobsSortCol) {
+    rows.sort((a, b) => {
+      const va = jobsColValue(a, jobsSortCol);
+      const vb = jobsColValue(b, jobsSortCol);
+      if (va < vb) return jobsSortDir === 'asc' ? -1 : 1;
+      if (va > vb) return jobsSortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  } else {
+    rows.sort((a, b) => {
+      const aHas = jobContacts(a.company).length > 0 ? 1 : 0;
+      const bHas = jobContacts(b.company).length > 0 ? 1 : 0;
+      if (aHas !== bHas) return bHas - aHas;
+      const aRating = a.glassdoor_rating != null && a.glassdoor_rating !== '' ? Number(a.glassdoor_rating) : -1;
+      const bRating = b.glassdoor_rating != null && b.glassdoor_rating !== '' ? Number(b.glassdoor_rating) : -1;
+      return bRating - aRating;
+    });
+  }
+
+  document.querySelectorAll('#jobs-table th[data-col]').forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (th.dataset.col === jobsSortCol) {
+      th.classList.add(jobsSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+    }
+  });
+
+  const tbody = document.getElementById('jobs-tbody');
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr id="jobs-empty-row"><td colspan="6" class="empty-msg">${jobs.length === 0 ? 'No jobs yet. Click "+ Add Job" to get started.' : 'No jobs match your search.'}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(j => {
+    const contacts = jobContacts(j.company);
+    return `
+    <tr>
+      <td>
+        <strong>${esc(j.company)}</strong>
+        ${j.title ? `<br/><span style="font-size:12px;color:#64748b;">${esc(j.title)}</span>` : ''}
+        ${contacts.length ? `<br/><span class="badge badge-referral">🤝 ${esc(contacts.map(p => p.name).join(', '))}</span>` : ''}
+        ${j.link ? `<br/><a href="${esc(j.link)}" target="_blank" style="font-size:12px;color:#4f46e5;">↗ listing</a>` : ''}
+      </td>
+      <td>
+        ${j.location ? esc(j.location) : '—'}
+        ${j.work_mode ? `<br/><span class="badge ${WORK_MODE_BADGE[j.work_mode] || ''}">${esc(j.work_mode)}</span>` : ''}
+      </td>
+      <td>
+        ${j.glassdoor_rating != null && j.glassdoor_rating !== '' ? `${stars(Math.round(j.glassdoor_rating))} <span style="font-size:12px;color:#64748b;">${j.glassdoor_rating}</span>` : '—'}
+        ${j.glassdoor_notes ? `<br/><span style="font-size:12px;color:#64748b;white-space:pre-wrap;">${esc(j.glassdoor_notes)}</span>` : ''}
+      </td>
+      <td><span class="badge ${JOB_STATUS_BADGE[j.status] || ''}">${esc(j.status || '—')}</span></td>
+      <td>${formatDate(j.date_added)}</td>
+      <td>
+        <div class="actions">
+          <button class="btn-icon" title="Edit" onclick="jobsOpenEdit('${j.id}')">✏️</button>
+          <button class="btn-icon danger" title="Delete" onclick="jobsConfirmDelete('${j.id}')">🗑</button>
+        </div>
+      </td>
+    </tr>
+  `;
+  }).join('');
+}
+
+function jobsOpenAdd() {
+  jobsEditingId = null;
+  document.getElementById('jobs-modal-title').textContent = 'Add Job';
+  document.getElementById('jobs-form').reset();
+  document.getElementById('jobs-f-id').value = '';
+  document.getElementById('jobs-f-status').value = 'Pending';
+  document.getElementById('jobs-f-date_added').value = todayISO();
+  clearInvalid();
+  document.getElementById('jobs-modal-overlay').classList.remove('hidden');
+}
+
+function jobsOpenEdit(id) {
+  const j = jobs.find(x => x.id === id);
+  if (!j) return;
+  jobsEditingId = id;
+  document.getElementById('jobs-modal-title').textContent = 'Edit Job';
+  document.getElementById('jobs-f-id').value = id;
+  document.getElementById('jobs-f-company').value = j.company || '';
+  document.getElementById('jobs-f-title').value = j.title || '';
+  document.getElementById('jobs-f-location').value = j.location || '';
+  document.getElementById('jobs-f-work_mode').value = j.work_mode || '';
+  document.getElementById('jobs-f-link').value = j.link || '';
+  document.getElementById('jobs-f-glassdoor_rating').value = j.glassdoor_rating != null ? j.glassdoor_rating : '';
+  document.getElementById('jobs-f-status').value = j.status || 'Pending';
+  document.getElementById('jobs-f-date_added').value = j.date_added || todayISO();
+  document.getElementById('jobs-f-glassdoor_notes').value = j.glassdoor_notes || '';
+  document.getElementById('jobs-f-notes').value = j.notes || '';
+
+  clearInvalid();
+  document.getElementById('jobs-modal-overlay').classList.remove('hidden');
+}
+
+function jobsCloseModal() {
+  document.getElementById('jobs-modal-overlay').classList.add('hidden');
+  jobsEditingId = null;
+}
+
+async function jobsHandleSubmit(evt) {
+  evt.preventDefault();
+  const companyEl = document.getElementById('jobs-f-company');
+  const titleEl = document.getElementById('jobs-f-title');
+  let valid = true;
+  if (!companyEl.value.trim()) {
+    companyEl.classList.add('invalid');
+    valid = false;
+  } else {
+    companyEl.classList.remove('invalid');
+  }
+  if (!titleEl.value.trim()) {
+    titleEl.classList.add('invalid');
+    valid = false;
+  } else {
+    titleEl.classList.remove('invalid');
+  }
+  if (!valid) {
+    (companyEl.value.trim() ? titleEl : companyEl).focus();
+    return;
+  }
+
+  const entry = {
+    company:          companyEl.value.trim(),
+    title:            titleEl.value.trim(),
+    location:         document.getElementById('jobs-f-location').value.trim(),
+    work_mode:        document.getElementById('jobs-f-work_mode').value,
+    link:             document.getElementById('jobs-f-link').value.trim(),
+    glassdoor_rating: toNum(document.getElementById('jobs-f-glassdoor_rating').value),
+    status:           document.getElementById('jobs-f-status').value,
+    date_added:       document.getElementById('jobs-f-date_added').value || todayISO(),
+    glassdoor_notes:  document.getElementById('jobs-f-glassdoor_notes').value.trim(),
+    notes:            document.getElementById('jobs-f-notes').value.trim(),
+  };
+
+  if (jobsEditingId) {
+    const res = await fetch(`/api/jobs/${jobsEditingId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry),
+    });
+    const saved = await res.json();
+    jobs = jobs.map(x => x.id === jobsEditingId ? saved : x);
+  } else {
+    const res = await fetch('/api/jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry),
+    });
+    const saved = await res.json();
+    jobs.push(saved);
+  }
+
+  jobsCloseModal();
+  jobsRender();
+}
+
+async function jobsConfirmDelete(id) {
+  const j = jobs.find(x => x.id === id);
+  if (!j) return;
+  if (!confirm(`Delete "${j.company} – ${j.title}" from your jobs list?`)) return;
+  await fetch(`/api/jobs/${id}`, { method: 'DELETE' });
+  jobs = jobs.filter(x => x.id !== id);
+  jobsRender();
 }

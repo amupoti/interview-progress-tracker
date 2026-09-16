@@ -18,6 +18,8 @@
         <button class="tab-btn" data-tab="recruiter">🎤 Recruiter</button>
         <button class="tab-btn" data-tab="challenges">💻 Code Challenges</button>
         <button class="tab-btn" data-tab="system-design">🏗 System Design</button>
+        <button class="tab-btn" data-tab="companies">🏢 Companies</button>
+        <button class="tab-btn" data-tab="jobs">💼 Jobs</button>
         <button class="tab-btn" data-tab="progress">📊 Progress</button>
       </nav>
     </div>
@@ -244,6 +246,195 @@
         </table>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Companies of Interest tab -->
+  <div id="tab-companies" class="hidden">
+    <div class="co-wrapper">
+
+      <div class="toolbar">
+        <button id="btn-add-co" class="btn btn-primary">+ Add Company</button>
+        <input type="text" id="co-search" placeholder="Search company, contact, benefits…" />
+      </div>
+
+      <div class="table-wrapper">
+        <table id="co-table">
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Contacts</th>
+              <th>Benefits</th>
+              <th>Interest</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="co-tbody">
+            <tr id="co-empty-row"><td colspan="5" class="empty-msg">No companies yet. Click "+ Add Company" to get started.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Jobs tab -->
+  <div id="tab-jobs" class="hidden">
+    <div class="jobs-wrapper">
+
+      <div class="toolbar">
+        <button id="btn-add-job" class="btn btn-primary">+ Add Job</button>
+        <input type="text" id="jobs-search" placeholder="Search company, title, location…" />
+        <select id="jobs-work-mode-filter">
+          <option value="">All work modes</option>
+          <option value="Remote">Remote</option>
+          <option value="Hybrid">Hybrid</option>
+          <option value="Onsite">Onsite</option>
+        </select>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="jobs-table">
+          <thead>
+            <tr>
+              <th data-col="company">Company / Title <span class="sort-icon">↕</span></th>
+              <th data-col="location">Location / Mode <span class="sort-icon">↕</span></th>
+              <th data-col="glassdoor_rating">Glassdoor <span class="sort-icon">↕</span></th>
+              <th data-col="status">Status <span class="sort-icon">↕</span></th>
+              <th data-col="date_added">Added <span class="sort-icon">↕</span></th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="jobs-tbody">
+            <tr id="jobs-empty-row"><td colspan="6" class="empty-msg">No jobs yet. Click "+ Add Job" to get started.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Companies Modal -->
+  <div id="co-modal-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="co-modal-title">Add Company</h2>
+        <button class="modal-close" id="co-modal-close">✕</button>
+      </div>
+      <form id="co-form" novalidate>
+        <input type="hidden" id="co-f-id" />
+        <div class="form-grid">
+          <div class="form-group required">
+            <label>Company Name</label>
+            <input type="text" id="co-f-company_name" required />
+          </div>
+          <div class="form-group">
+            <label>Company URL</label>
+            <input type="url" id="co-f-url" placeholder="https://…" />
+          </div>
+          <div class="form-group">
+            <label>Industry</label>
+            <input type="text" id="co-f-industry" placeholder="e.g. Fintech, Healthcare…" />
+          </div>
+          <div class="form-group">
+            <label>Location</label>
+            <input type="text" id="co-f-location" placeholder="City, Country / Remote" />
+          </div>
+          <div class="form-group">
+            <label>Interest Level (1–5)</label>
+            <input type="number" id="co-f-interest_level" min="1" max="5" />
+          </div>
+          <div class="form-group full-width">
+            <label>Benefits</label>
+            <textarea id="co-f-benefits" rows="2" placeholder="e.g. Remote-first, equity, healthcare…"></textarea>
+          </div>
+          <div class="form-group full-width">
+            <label>Notes</label>
+            <textarea id="co-f-notes" rows="3"></textarea>
+          </div>
+          <div class="form-group full-width">
+            <label>Contacts</label>
+            <div id="co-contacts-list"></div>
+            <button type="button" class="btn btn-secondary" id="co-btn-add-contact" style="align-self:flex-start;margin-top:4px;">+ Add Contact</button>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="co-btn-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Jobs Modal -->
+  <div id="jobs-modal-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="jobs-modal-title">Add Job</h2>
+        <button class="modal-close" id="jobs-modal-close">✕</button>
+      </div>
+      <form id="jobs-form" novalidate>
+        <input type="hidden" id="jobs-f-id" />
+        <div class="form-grid">
+          <div class="form-group required">
+            <label>Company</label>
+            <input type="text" id="jobs-f-company" required />
+          </div>
+          <div class="form-group required">
+            <label>Job Title</label>
+            <input type="text" id="jobs-f-title" required />
+          </div>
+          <div class="form-group">
+            <label>Location</label>
+            <input type="text" id="jobs-f-location" placeholder="City, Country / Remote" />
+          </div>
+          <div class="form-group">
+            <label>Work Mode</label>
+            <select id="jobs-f-work_mode">
+              <option value="">—</option>
+              <option value="Remote">Remote</option>
+              <option value="Hybrid">Hybrid</option>
+              <option value="Onsite">Onsite</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Link</label>
+            <input type="url" id="jobs-f-link" placeholder="https://…" />
+          </div>
+          <div class="form-group">
+            <label>Glassdoor Rating (0–5)</label>
+            <input type="number" id="jobs-f-glassdoor_rating" min="0" max="5" step="0.1" />
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="jobs-f-status">
+              <option value="Pending">Pending</option>
+              <option value="Interested">Interested</option>
+              <option value="Applied">Applied</option>
+              <option value="Interviewing">Interviewing</option>
+              <option value="Offer">Offer</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Discarded">Discarded</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Date Added</label>
+            <input type="date" id="jobs-f-date_added" />
+          </div>
+          <div class="form-group full-width">
+            <label>Glassdoor Notes</label>
+            <textarea id="jobs-f-glassdoor_notes" rows="2" placeholder="Review highlights, red flags…"></textarea>
+          </div>
+          <div class="form-group full-width">
+            <label>Notes</label>
+            <textarea id="jobs-f-notes" rows="3"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="jobs-btn-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
     </div>
   </div>
 

@@ -17,7 +17,10 @@ pip3 install flask
 python3 app.py
 ```
 
-Then open **http://localhost:5000** in your browser.
+Then open **http://localhost:5001** in your browser.
+
+> **Note (macOS):** port 5000 is used by AirPlay Receiver on modern macOS, which returns
+> a `403 Forbidden` for unrelated requests — that's why this app defaults to 5001.
 
 Mutable data is automatically saved to the local SQLite database at `data/tracker.db`.
 Existing JSON data is imported automatically the first time each data set is accessed.

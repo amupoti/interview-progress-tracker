@@ -141,6 +141,14 @@ tr:hover td { background: #f8fafc; }
 .badge-accepted     { background: #bbf7d0; color: #14532d; }
 .badge-rejected     { background: #fee2e2; color: #991b1b; }
 .badge-declined     { background: #f1f5f9; color: #475569; }
+.badge-pending      { background: #f1f5f9; color: #475569; }
+.badge-interested   { background: #e0f2fe; color: #0369a1; }
+.badge-interviewing { background: #fef3c7; color: #b45309; }
+.badge-discarded    { background: #f1f5f9; color: #475569; }
+.badge-remote       { background: #d1fae5; color: #065f46; }
+.badge-hybrid       { background: #fef3c7; color: #b45309; }
+.badge-onsite       { background: #ffedd5; color: #c2410c; }
+.badge-referral     { background: #ede9fe; color: #6d28d9; }
 
 /* ── Interest stars ── */
 .stars { color: #f59e0b; letter-spacing: 1px; }
@@ -219,7 +227,7 @@ tr:hover td { background: #f8fafc; }
 .modal-close:hover { color: var(--text); }
 
 /* ── Form ── */
-#entry-form, #sd-form { padding: 20px 24px; }
+#entry-form, #sd-form, #co-form, #jobs-form { padding: 20px 24px; }
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -255,6 +263,28 @@ tr:hover td { background: #f8fafc; }
   padding-top: 16px;
   border-top: 1px solid var(--border);
 }
+
+/* ── Contact rows (Companies) ── */
+#co-contacts-list { display: flex; flex-direction: column; gap: 8px; }
+.co-contact-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.co-contact-row input {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  background: var(--surface);
+}
+.co-contact-row input:focus { border-color: var(--primary); }
+.co-contacts-cell { display: flex; flex-direction: column; gap: 2px; }
+.co-contact-chip { font-size: 12px; color: var(--text-muted); }
+.co-contact-chip strong { color: var(--text); font-weight: 500; }
 
 /* ── Utility ── */
 .hidden { display: none !important; }
@@ -682,6 +712,26 @@ tr:hover td { background: #f8fafc; }
 .cal-rq-dot-1 { background: #fef3c7; color: #92400e; }
 .cal-rq-dot-2 { background: #fde68a; color: #78350f; }
 .cal-rq-dot-3 { background: #f59e0b; color: #fff; }
+
+/* ── Companies tab ── */
+.co-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Jobs tab ── */
+.jobs-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
 /* ── System Design tab ── */
 .sd-wrapper {

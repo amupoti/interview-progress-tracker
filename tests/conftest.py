@@ -23,6 +23,8 @@ def tmp_data(tmp_path, monkeypatch):
     monkeypatch.setattr(app_module, "CHALLENGES_PROGRESS_FILE", str(tmp_path / "challenges_progress.json"))
     monkeypatch.setattr(app_module, "RECRUITER_QUESTIONS_FILE", str(tmp_path / "recruiter_questions.json"))
     monkeypatch.setattr(app_module, "RECRUITER_PRACTICE_FILE",  str(tmp_path / "recruiter_practice.json"))
+    monkeypatch.setattr(app_module, "COMPANIES_FILE",           str(tmp_path / "companies.json"))
+    monkeypatch.setattr(app_module, "JOBS_FILE",                str(tmp_path / "jobs.json"))
     return tmp_path
 
 
