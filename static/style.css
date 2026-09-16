@@ -86,6 +86,7 @@ main {
 }
 .toolbar input { flex: 1; min-width: 200px; }
 .toolbar input:focus, .toolbar select:focus { border-color: var(--primary); }
+.reload-status { font-size: 13px; color: var(--text-muted); align-self: center; }
 
 /* ── Table ── */
 .table-wrapper {
@@ -145,6 +146,7 @@ tr:hover td { background: #f8fafc; }
 .badge-interested   { background: #e0f2fe; color: #0369a1; }
 .badge-interviewing { background: #fef3c7; color: #b45309; }
 .badge-discarded    { background: #f1f5f9; color: #475569; }
+.badge-removed      { background: #fee2e2; color: #991b1b; }
 .badge-remote       { background: #d1fae5; color: #065f46; }
 .badge-hybrid       { background: #fef3c7; color: #b45309; }
 .badge-onsite       { background: #ffedd5; color: #c2410c; }

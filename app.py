@@ -1,12 +1,29 @@
 import json
 import os
 import random as _random
+import time
+import urllib.error
+import urllib.request
 import uuid
 from datetime import date, timedelta
 from flask import Flask, jsonify, request, render_template
 from storage import load_state, save_state
 
 app = Flask(__name__)
+
+CLOSED_JOB_MARKER = "closed-job__flavor--closed"
+
+
+def check_job_link_closed(url):
+    """Return True if the LinkedIn job posting at url is closed/removed,
+    False if it looks open, or None if it couldn't be checked."""
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            html = resp.read().decode("utf-8", errors="ignore")
+    except (urllib.error.URLError, OSError, ValueError):
+        return None
+    return CLOSED_JOB_MARKER in html
 
 DATA_FILE = os.path.join(os.path.dirname(__file__), "data", "interviews.json")
 DATABASE_FILE = os.path.join(os.path.dirname(__file__), "data", "tracker.db")
@@ -493,6 +510,24 @@ def delete_job(entry_id):
     data["jobs"] = new_jobs
     save_jobs(data)
     return "", 204
+
+
+@app.route("/api/jobs/refresh", methods=["POST"])
+def refresh_jobs():
+    data = load_jobs()
+    checked = 0
+    removed = 0
+    for entry in data["jobs"]:
+        link = entry.get("link")
+        if not link or entry.get("status") == "Removed":
+            continue
+        checked += 1
+        if check_job_link_closed(link):
+            entry["status"] = "Removed"
+            removed += 1
+        time.sleep(0.3)
+    save_jobs(data)
+    return jsonify({"checked": checked, "removed": removed})
 
 
 if __name__ == "__main__":

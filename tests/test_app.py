@@ -396,6 +396,64 @@ def test_delete_job_not_found(client):
     assert res.status_code == 404
 
 
+def test_refresh_jobs_marks_closed_as_removed(client, monkeypatch):
+    monkeypatch.setattr(app_module.time, "sleep", lambda s: None)
+    open_job = client.post(
+        "/api/jobs",
+        json={"company": "Acme", "title": "Staff SWE", "link": "https://example.com/open"},
+    ).get_json()
+    closed_job = client.post(
+        "/api/jobs",
+        json={"company": "Globex", "title": "Staff SWE", "link": "https://example.com/closed"},
+    ).get_json()
+
+    monkeypatch.setattr(
+        app_module, "check_job_link_closed", lambda url: url == "https://example.com/closed"
+    )
+
+    res = client.post("/api/jobs/refresh")
+    assert res.status_code == 200
+    assert res.get_json() == {"checked": 2, "removed": 1}
+
+    jobs = {j["id"]: j for j in client.get("/api/jobs").get_json()}
+    assert jobs[open_job["id"]].get("status") != "Removed"
+    assert jobs[closed_job["id"]]["status"] == "Removed"
+
+
+def test_refresh_jobs_skips_jobs_without_link(client, monkeypatch):
+    monkeypatch.setattr(app_module.time, "sleep", lambda s: None)
+    client.post("/api/jobs", json={"company": "Acme", "title": "Staff SWE"})
+
+    calls = []
+    monkeypatch.setattr(app_module, "check_job_link_closed", lambda url: calls.append(url) or False)
+
+    res = client.post("/api/jobs/refresh")
+    assert res.status_code == 200
+    assert res.get_json() == {"checked": 0, "removed": 0}
+    assert calls == []
+
+
+def test_refresh_jobs_skips_already_removed(client, monkeypatch):
+    monkeypatch.setattr(app_module.time, "sleep", lambda s: None)
+    client.post(
+        "/api/jobs",
+        json={
+            "company": "Acme",
+            "title": "Staff SWE",
+            "link": "https://example.com/x",
+            "status": "Removed",
+        },
+    )
+
+    calls = []
+    monkeypatch.setattr(app_module, "check_job_link_closed", lambda url: calls.append(url) or True)
+
+    res = client.post("/api/jobs/refresh")
+    assert res.status_code == 200
+    assert res.get_json() == {"checked": 0, "removed": 0}
+    assert calls == []
+
+
 # ── Challenges progress migration ─────────────────────────────────────────────
 
 def test_challenges_progress_migrates_list_format(tmp_data):

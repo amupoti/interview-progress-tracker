@@ -47,6 +47,7 @@ const JOB_STATUS_BADGE = {
   'Offer':        'badge-offer',
   'Rejected':     'badge-rejected',
   'Discarded':    'badge-discarded',
+  'Removed':      'badge-removed',
 };
 
 const WORK_MODE_BADGE = {
@@ -112,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Jobs
   document.getElementById('btn-add-job').addEventListener('click', jobsOpenAdd);
+  document.getElementById('btn-reload-jobs').addEventListener('click', jobsReload);
   document.getElementById('jobs-btn-cancel').addEventListener('click', jobsCloseModal);
   document.getElementById('jobs-modal-close').addEventListener('click', jobsCloseModal);
   document.getElementById('jobs-modal-overlay').addEventListener('click', e => {
@@ -1074,6 +1076,23 @@ async function jobsFetchJobs() {
     coRender();
   }
   jobsRender();
+}
+
+async function jobsReload() {
+  const btn = document.getElementById('btn-reload-jobs');
+  const statusEl = document.getElementById('jobs-reload-status');
+  btn.disabled = true;
+  statusEl.textContent = 'Checking listings…';
+  try {
+    const res = await fetch('/api/jobs/refresh', { method: 'POST' });
+    const result = await res.json();
+    await jobsFetchJobs();
+    statusEl.textContent = `Checked ${result.checked}, marked ${result.removed} as removed.`;
+  } catch (err) {
+    statusEl.textContent = 'Reload failed — check the server log.';
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function jobContacts(companyName) {
