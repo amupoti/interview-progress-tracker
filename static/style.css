@@ -145,12 +145,14 @@ tr:hover td { background: #f8fafc; }
 .badge-pending      { background: #f1f5f9; color: #475569; }
 .badge-interested   { background: #e0f2fe; color: #0369a1; }
 .badge-interviewing { background: #fef3c7; color: #b45309; }
-.badge-discarded    { background: #f1f5f9; color: #475569; }
+.badge-discarded    { background: #fee2e2; color: #991b1b; }
 .badge-removed      { background: #fee2e2; color: #991b1b; }
 .badge-remote       { background: #d1fae5; color: #065f46; }
 .badge-hybrid       { background: #fef3c7; color: #b45309; }
 .badge-onsite       { background: #ffedd5; color: #c2410c; }
 .badge-referral     { background: #ede9fe; color: #6d28d9; }
+.badge-senior       { background: #e0e7ff; color: #4338ca; }
+.badge-staff        { background: #ede9fe; color: #6d28d9; }
 
 /* ── Interest stars ── */
 .stars { color: #f59e0b; letter-spacing: 1px; }

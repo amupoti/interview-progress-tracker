@@ -56,6 +56,11 @@ const WORK_MODE_BADGE = {
   'Onsite': 'badge-onsite',
 };
 
+const JOB_LEVEL_BADGE = {
+  'Senior': 'badge-senior',
+  'Staff':  'badge-staff',
+};
+
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {
   fetchInterviews();
@@ -122,6 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('jobs-form').addEventListener('submit', jobsHandleSubmit);
   document.getElementById('jobs-search').addEventListener('input', jobsRender);
   document.getElementById('jobs-work-mode-filter').addEventListener('change', jobsRender);
+  document.getElementById('jobs-level-filter').addEventListener('change', jobsRender);
   document.querySelectorAll('#jobs-table th[data-col]').forEach(th => {
     th.addEventListener('click', () => {
       const col = th.dataset.col;
@@ -1114,19 +1120,29 @@ function jobsColValue(j, col) {
   }
 }
 
+const JOB_SUNK_STATUSES = ['Rejected', 'Discarded'];
+function jobSinksToBottom(j) {
+  return JOB_SUNK_STATUSES.includes(j.status) ? 1 : 0;
+}
+
 function jobsRender() {
   const search = document.getElementById('jobs-search').value.toLowerCase();
   const workModeFilter = document.getElementById('jobs-work-mode-filter').value;
+  const levelFilter = document.getElementById('jobs-level-filter').value;
 
   const rows = jobs.filter(j => {
     if (workModeFilter && j.work_mode !== workModeFilter) return false;
+    if (levelFilter && j.level !== levelFilter) return false;
     if (!search) return true;
-    const haystack = `${j.company || ''} ${j.title || ''} ${j.location || ''} ${j.notes || ''} ${j.glassdoor_notes || ''}`.toLowerCase();
+    const haystack = `${j.company || ''} ${j.title || ''} ${j.location || ''} ${j.level || ''} ${j.notes || ''} ${j.glassdoor_notes || ''}`.toLowerCase();
     return haystack.includes(search);
   });
 
   if (jobsSortCol) {
     rows.sort((a, b) => {
+      const aSunk = jobSinksToBottom(a);
+      const bSunk = jobSinksToBottom(b);
+      if (aSunk !== bSunk) return aSunk - bSunk;
       const va = jobsColValue(a, jobsSortCol);
       const vb = jobsColValue(b, jobsSortCol);
       if (va < vb) return jobsSortDir === 'asc' ? -1 : 1;
@@ -1135,6 +1151,9 @@ function jobsRender() {
     });
   } else {
     rows.sort((a, b) => {
+      const aSunk = jobSinksToBottom(a);
+      const bSunk = jobSinksToBottom(b);
+      if (aSunk !== bSunk) return aSunk - bSunk;
       const aHas = jobContacts(a.company).length > 0 ? 1 : 0;
       const bHas = jobContacts(b.company).length > 0 ? 1 : 0;
       if (aHas !== bHas) return bHas - aHas;
@@ -1164,6 +1183,7 @@ function jobsRender() {
       <td>
         <strong>${esc(j.company)}</strong>
         ${j.title ? `<br/><span style="font-size:12px;color:#64748b;">${esc(j.title)}</span>` : ''}
+        ${j.level ? `<br/><span class="badge ${JOB_LEVEL_BADGE[j.level] || ''}">${esc(j.level)}</span>` : ''}
         ${contacts.length ? `<br/><span class="badge badge-referral">🤝 ${esc(contacts.map(p => p.name).join(', '))}</span>` : ''}
         ${j.link ? `<br/><a href="${esc(j.link)}" target="_blank" style="font-size:12px;color:#4f46e5;">↗ listing</a>` : ''}
       </td>
@@ -1209,6 +1229,7 @@ function jobsOpenEdit(id) {
   document.getElementById('jobs-f-title').value = j.title || '';
   document.getElementById('jobs-f-location').value = j.location || '';
   document.getElementById('jobs-f-work_mode').value = j.work_mode || '';
+  document.getElementById('jobs-f-level').value = j.level || '';
   document.getElementById('jobs-f-link').value = j.link || '';
   document.getElementById('jobs-f-glassdoor_rating').value = j.glassdoor_rating != null ? j.glassdoor_rating : '';
   document.getElementById('jobs-f-status').value = j.status || 'Pending';
@@ -1252,6 +1273,7 @@ async function jobsHandleSubmit(evt) {
     title:            titleEl.value.trim(),
     location:         document.getElementById('jobs-f-location').value.trim(),
     work_mode:        document.getElementById('jobs-f-work_mode').value,
+    level:            document.getElementById('jobs-f-level').value,
     link:             document.getElementById('jobs-f-link').value.trim(),
     glassdoor_rating: toNum(document.getElementById('jobs-f-glassdoor_rating').value),
     status:           document.getElementById('jobs-f-status').value,

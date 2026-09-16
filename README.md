@@ -66,6 +66,7 @@ The Jobs tab is a lightweight triage list for job listings you've found but have
 | Job Title | Role as listed |
 | Location | City/country as listed |
 | Work Mode | `Remote`, `Hybrid`, or `Onsite` |
+| Level | `Senior`, `Staff`, or `Other` |
 | Link | URL to the original listing |
 | Glassdoor Rating | 0–5 stars |
 | Glassdoor Notes | Review highlights, red flags, sample size caveats, etc. |
@@ -75,7 +76,7 @@ The Jobs tab is a lightweight triage list for job listings you've found but have
 
 **Filtering and sorting**
 
-- Filter by work mode (Remote / Hybrid / Onsite) or free-text search across company, title, location, and notes.
+- Filter by work mode (Remote / Hybrid / Onsite), by level (Senior / Staff / Other), or free-text search across company, title, location, level, and notes.
 - Click any column header to sort by it.
 - With no column sort active, rows default-sort with **referral-aware ranking**: any job at a company that has a contact listed in the **Companies** tab floats to the top, with Glassdoor rating as the tiebreaker. Add a contact name to a company in the Companies tab and its open roles automatically jump to the top of the Jobs list.
 
