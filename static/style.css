@@ -115,6 +115,7 @@ th:hover:not(:last-child) { color: var(--primary); }
 th.sort-asc .sort-icon::after  { content: " ▲"; }
 th.sort-desc .sort-icon::after { content: " ▼"; }
 .sort-icon { font-size: 11px; color: var(--text-muted); }
+#jobs-table th[data-col="company"] { min-width: 280px; }
 
 td {
   padding: 11px 14px;

@@ -1185,6 +1185,7 @@ function jobContacts(companyName) {
 function jobsColValue(j, col) {
   switch (col) {
     case 'company':          return (j.company || '').toLowerCase();
+    case 'level':            return (j.level || '').toLowerCase();
     case 'location':         return (j.location || '').toLowerCase();
     case 'glassdoor_rating': return j.glassdoor_rating != null && j.glassdoor_rating !== '' ? Number(j.glassdoor_rating) : -1;
     case 'status':           return (j.status || '').toLowerCase();
@@ -1252,21 +1253,21 @@ function jobsRender() {
 
   const tbody = document.getElementById('jobs-tbody');
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr id="jobs-empty-row"><td colspan="6" class="empty-msg">${jobs.length === 0 ? 'No jobs yet. Click "+ Add Job" to get started.' : 'No jobs match your search.'}</td></tr>`;
+    tbody.innerHTML = `<tr id="jobs-empty-row"><td colspan="7" class="empty-msg">${jobs.length === 0 ? 'No jobs yet. Click "+ Add Job" to get started.' : 'No jobs match your search.'}</td></tr>`;
     return;
   }
 
   tbody.innerHTML = rows.map(j => {
     const contacts = jobContacts(j.company);
+    const title = j.title ? esc(j.title) : '';
     return `
     <tr>
       <td>
         <strong>${esc(j.company)}</strong>
-        ${j.title ? `<br/><span style="font-size:12px;color:#64748b;">${esc(j.title)}</span>` : ''}
-        ${j.level ? `<br/><span class="badge ${JOB_LEVEL_BADGE[j.level] || ''}">${esc(j.level)}</span>` : ''}
+        ${title ? `<br/>${j.link ? `<a href="${esc(j.link)}" target="_blank" style="font-size:12px;color:#4f46e5;">${title}</a>` : `<span style="font-size:12px;color:#64748b;">${title}</span>`}` : ''}
         ${contacts.length ? `<br/><span class="badge badge-referral">🤝 ${esc(contacts.map(p => p.name).join(', '))}</span>` : ''}
-        ${j.link ? `<br/><a href="${esc(j.link)}" target="_blank" style="font-size:12px;color:#4f46e5;">↗ listing</a>` : ''}
       </td>
+      <td>${j.level ? `<span class="badge ${JOB_LEVEL_BADGE[j.level] || ''}">${esc(j.level)}</span>` : '—'}</td>
       <td>
         ${j.location ? esc(j.location) : '—'}
         ${j.work_mode ? `<br/><span class="badge ${WORK_MODE_BADGE[j.work_mode] || ''}">${esc(j.work_mode)}</span>` : ''}
