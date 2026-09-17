@@ -1263,7 +1263,7 @@ function jobsRender() {
     return `
     <tr>
       <td>
-        ${title ? (j.link ? `<a href="${esc(j.link)}" target="_blank" style="color:inherit;"><strong>${title}</strong></a>` : `<strong>${title}</strong>`) : `<strong>${esc(j.company)}</strong>`}
+        ${title ? (j.link ? `<a href="${esc(j.link)}" target="_blank" style="color:inherit;text-decoration:none;"><strong>${title} ↗</strong></a>` : `<strong>${title}</strong>`) : `<strong>${esc(j.company)}</strong>`}
         <br/><span style="font-size:13px;color:#64748b;">${esc(j.company)}</span>
         ${contacts.length ? `<br/><span class="badge badge-referral">🤝 ${esc(contacts.map(p => p.name).join(', '))}</span>` : ''}
       </td>
