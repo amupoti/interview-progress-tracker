@@ -153,8 +153,8 @@ tr:hover td { background: #f8fafc; }
 .badge-hybrid       { background: #fef3c7; color: #b45309; }
 .badge-onsite       { background: #ffedd5; color: #c2410c; }
 .badge-referral     { background: #ede9fe; color: #6d28d9; }
-.badge-senior       { background: #e0e7ff; color: #4338ca; }
-.badge-staff        { background: #ede9fe; color: #6d28d9; }
+.badge-senior       { background: #ccfbf1; color: #0f766e; }
+.badge-staff        { background: #e0e7ff; color: #3730a3; }
 
 /* ── Interest stars ── */
 .stars { color: #f59e0b; letter-spacing: 1px; }
