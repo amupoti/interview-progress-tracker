@@ -39,14 +39,15 @@ Gathers new job listings for the user's Staff Software Engineer job search (Barc
 
 4. **Filter** each candidate against the search scope above and against the dedup set from step 2. Use judgment on ambiguous cases (agency names, dual-level titles like "Senior/Staff") — note the assumption made when adding.
 
-5. **Get Glassdoor data for each new listing:**
-   - If the company is already tracked elsewhere in the Jobs list (from step 2's fetch), copy its existing `glassdoor_rating`/`glassdoor_notes` rather than re-searching.
+5. **Get Glassdoor data for each new listing.** The app caches Glassdoor lookups by company (keyed lowercase) in a `glassdoor_cache` store, since ratings rarely change — check it before scraping anything:
+   - Fetch the cache once per run: `GET http://localhost:5001/api/glassdoor-cache` → `{"<company lowercase>": {"glassdoor_rating": ..., "glassdoor_notes": ..., "updated_at": ...}, ...}`.
+   - If the company (case-insensitive) is in that cache, reuse its `glassdoor_rating`/`glassdoor_notes` — no need to re-search, and no need to pass them again when creating the job (step 6 auto-fills from the cache server-side if you omit them).
    - Otherwise, navigate to `https://www.glassdoor.com/Search/results.htm?keyword=<company name>` (no login needed) and read `document.querySelector('main').innerText` — the first "Companies" result gives rating + review count directly, e.g. `Company | 4.2★ | 39jobs | 365reviews`.
    - Format the note as `"<rating>★ from <count> reviews."`, appending `" (small sample)"` if review count < 30, or `" — solid sample size"` if > 200.
-   - Some small/new companies have no Glassdoor presence at all — leave `glassdoor_rating`/`glassdoor_notes` blank rather than guessing (don't force a match to an unrelated same-named company).
+   - Some small/new companies have no Glassdoor presence at all — leave `glassdoor_rating`/`glassdoor_notes` blank rather than guessing (don't force a match to an unrelated same-named company). Blank results aren't cached, so they'll be retried next run.
    - **Do this inline for every job as you add it, not as an afterthought** — skipping it on a whole batch and backfilling later has already happened once and needed a follow-up correction.
 
-6. **Add each qualifying new listing** via `POST http://localhost:5001/api/jobs` with: `company`, `title`, `location` (as shown on LinkedIn, e.g. "Barcelona, Catalonia, Spain (Remote)"), `work_mode` (`Remote`/`Hybrid`/`Onsite`, parsed from the location suffix), `level` (`Senior`/`Staff`), `link` (the `/jobs/view/<id>/` URL), `glassdoor_rating`, `glassdoor_notes`, `status: "Pending"`, `date_added` (today, ISO format). Do this via a small Python script using `urllib.request` (see prior conversation for the exact pattern) rather than one curl call per job.
+6. **Add each qualifying new listing** via `POST http://localhost:5001/api/jobs` with: `company`, `title`, `location` (as shown on LinkedIn, e.g. "Barcelona, Catalonia, Spain (Remote)"), `work_mode` (`Remote`/`Hybrid`/`Onsite`, parsed from the location suffix), `level` (`Senior`/`Staff`), `link` (the `/jobs/view/<id>/` URL), `glassdoor_rating`, `glassdoor_notes` (omit both if reusing a cached value — the backend fills them in from the cache), `status: "Pending"`, `date_added` (today, ISO format). Do this via a small Python script using `urllib.request` (see prior conversation for the exact pattern) rather than one curl call per job. Posting a job that *does* include a `glassdoor_rating` writes/refreshes that company's cache entry automatically.
 
 7. **Stop the local Flask server** when done (`pkill -f "python3 app.py"`) and close any browser tabs opened for this task.
 

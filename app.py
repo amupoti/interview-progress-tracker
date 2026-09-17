@@ -36,6 +36,7 @@ RECRUITER_QUESTIONS_FILE = os.path.join(os.path.dirname(__file__), "data", "recr
 RECRUITER_PRACTICE_FILE = os.path.join(os.path.dirname(__file__), "data", "recruiter_practice.json")
 COMPANIES_FILE = os.path.join(os.path.dirname(__file__), "data", "companies.json")
 JOBS_FILE = os.path.join(os.path.dirname(__file__), "data", "jobs.json")
+GLASSDOOR_CACHE_FILE = os.path.join(os.path.dirname(__file__), "data", "glassdoor_cache.json")
 
 
 def load_data():
@@ -124,6 +125,34 @@ def load_jobs():
 
 def save_jobs(data):
     save_state(DATABASE_FILE, "jobs", data)
+
+
+def load_glassdoor_cache():
+    return load_state(DATABASE_FILE, "glassdoor_cache", {}, GLASSDOOR_CACHE_FILE)
+
+
+def save_glassdoor_cache(data):
+    save_state(DATABASE_FILE, "glassdoor_cache", data)
+
+
+def sync_glassdoor_cache(entry):
+    """Fill entry's glassdoor fields from the cache if it omits them, or
+    update the cache when entry supplies a rating. Glassdoor ratings rarely
+    change, so once a company is looked up it never needs re-scraping."""
+    company_key = (entry.get("company") or "").strip().lower()
+    if not company_key:
+        return
+    cache = load_glassdoor_cache()
+    if entry.get("glassdoor_rating") not in (None, ""):
+        cache[company_key] = {
+            "glassdoor_rating": entry.get("glassdoor_rating"),
+            "glassdoor_notes": entry.get("glassdoor_notes", ""),
+            "updated_at": date.today().isoformat(),
+        }
+        save_glassdoor_cache(cache)
+    elif company_key in cache:
+        entry["glassdoor_rating"] = cache[company_key].get("glassdoor_rating")
+        entry["glassdoor_notes"] = cache[company_key].get("glassdoor_notes", "")
 
 
 def compute_streak(history):
@@ -483,6 +512,7 @@ def create_job():
     data = load_jobs()
     entry = request.get_json()
     entry["id"] = str(uuid.uuid4())
+    sync_glassdoor_cache(entry)
     data["jobs"].append(entry)
     save_jobs(data)
     return jsonify(entry), 201
@@ -495,10 +525,16 @@ def update_job(entry_id):
         if entry["id"] == entry_id:
             updated = request.get_json()
             updated["id"] = entry_id
+            sync_glassdoor_cache(updated)
             data["jobs"][i] = updated
             save_jobs(data)
             return jsonify(updated)
     return jsonify({"error": "Not found"}), 404
+
+
+@app.route("/api/glassdoor-cache", methods=["GET"])
+def get_glassdoor_cache():
+    return jsonify(load_glassdoor_cache())
 
 
 @app.route("/api/jobs/<entry_id>", methods=["DELETE"])

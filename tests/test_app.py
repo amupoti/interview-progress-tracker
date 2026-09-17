@@ -396,6 +396,57 @@ def test_delete_job_not_found(client):
     assert res.status_code == 404
 
 
+def test_glassdoor_cache_empty_by_default(client):
+    res = client.get("/api/glassdoor-cache")
+    assert res.status_code == 200
+    assert res.get_json() == {}
+
+
+def test_create_job_populates_glassdoor_cache(client):
+    client.post("/api/jobs", json={
+        "company": "Acme",
+        "title": "Staff SWE",
+        "glassdoor_rating": 4.2,
+        "glassdoor_notes": "Good WLB",
+    })
+    cache = client.get("/api/glassdoor-cache").get_json()
+    assert cache["acme"]["glassdoor_rating"] == 4.2
+    assert cache["acme"]["glassdoor_notes"] == "Good WLB"
+    assert "updated_at" in cache["acme"]
+
+
+def test_create_job_reuses_cached_glassdoor_rating(client):
+    client.post("/api/jobs", json={
+        "company": "Acme",
+        "title": "Staff SWE",
+        "glassdoor_rating": 4.2,
+        "glassdoor_notes": "Good WLB",
+    })
+    res = client.post("/api/jobs", json={"company": "acme", "title": "Senior SWE"})
+    data = res.get_json()
+    assert data["glassdoor_rating"] == 4.2
+    assert data["glassdoor_notes"] == "Good WLB"
+
+
+def test_create_job_without_rating_or_cache_leaves_fields_unset(client):
+    res = client.post("/api/jobs", json={"company": "Nobody Heard Of", "title": "Staff SWE"})
+    data = res.get_json()
+    assert data.get("glassdoor_rating") is None
+    assert client.get("/api/glassdoor-cache").get_json() == {}
+
+
+def test_update_job_refreshes_glassdoor_cache(client):
+    created = client.post("/api/jobs", json={"company": "Acme", "title": "Staff SWE"}).get_json()
+    client.put(f"/api/jobs/{created['id']}", json={
+        "company": "Acme",
+        "title": "Staff SWE",
+        "glassdoor_rating": 3.9,
+        "glassdoor_notes": "Updated review",
+    })
+    cache = client.get("/api/glassdoor-cache").get_json()
+    assert cache["acme"]["glassdoor_rating"] == 3.9
+
+
 def test_refresh_jobs_marks_closed_as_removed(client, monkeypatch):
     monkeypatch.setattr(app_module.time, "sleep", lambda s: None)
     open_job = client.post(
