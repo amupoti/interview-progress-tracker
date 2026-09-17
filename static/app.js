@@ -21,6 +21,8 @@ let companies = [];
 let coEditingId = null;
 let coLoaded = false;
 let coContactCount = 0;
+let coSortCol = null;
+let coSortDir = 'asc';
 let glassdoorCache = {};
 let gdLoaded = false;
 
@@ -117,6 +119,18 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('co-form').addEventListener('submit', coHandleSubmit);
   document.getElementById('co-btn-add-contact').addEventListener('click', () => coAddContactRow());
   document.getElementById('co-search').addEventListener('input', coRender);
+  document.querySelectorAll('#co-table th[data-col]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (coSortCol === col) {
+        coSortDir = coSortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        coSortCol = col;
+        coSortDir = 'desc';
+      }
+      coRender();
+    });
+  });
 
   // Jobs
   document.getElementById('btn-add-job').addEventListener('click', jobsOpenAdd);
@@ -917,6 +931,16 @@ function coGlassdoor(companyName) {
   return glassdoorCache[companyName.trim().toLowerCase()] || null;
 }
 
+function coColValue(c, col) {
+  switch (col) {
+    case 'glassdoor': {
+      const gd = coGlassdoor(c.company_name);
+      return gd && gd.glassdoor_rating != null && gd.glassdoor_rating !== '' ? Number(gd.glassdoor_rating) : -1;
+    }
+    default: return '';
+  }
+}
+
 function coRender() {
   const search = document.getElementById('co-search').value.toLowerCase();
 
@@ -925,6 +949,23 @@ function coRender() {
     const contactText = (c.contacts || []).map(p => `${p.name || ''} ${p.title || ''} ${p.email || ''}`).join(' ');
     const haystack = `${c.company_name || ''} ${c.industry || ''} ${c.location || ''} ${c.benefits || ''} ${contactText}`.toLowerCase();
     return haystack.includes(search);
+  });
+
+  if (coSortCol) {
+    rows.sort((a, b) => {
+      const va = coColValue(a, coSortCol);
+      const vb = coColValue(b, coSortCol);
+      if (va < vb) return coSortDir === 'asc' ? -1 : 1;
+      if (va > vb) return coSortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }
+
+  document.querySelectorAll('#co-table th[data-col]').forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (th.dataset.col === coSortCol) {
+      th.classList.add(coSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+    }
   });
 
   const tbody = document.getElementById('co-tbody');
