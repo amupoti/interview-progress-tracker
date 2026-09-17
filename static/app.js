@@ -1264,7 +1264,7 @@ function jobsRender() {
     <tr>
       <td>
         ${title ? (j.link ? `<a href="${esc(j.link)}" target="_blank" style="color:inherit;"><strong>${title}</strong></a>` : `<strong>${title}</strong>`) : `<strong>${esc(j.company)}</strong>`}
-        <br/><span style="font-size:12px;color:#64748b;">${esc(j.company)}</span>
+        <br/><span style="font-size:13px;color:#64748b;">${esc(j.company)}</span>
         ${contacts.length ? `<br/><span class="badge badge-referral">🤝 ${esc(contacts.map(p => p.name).join(', '))}</span>` : ''}
       </td>
       <td>${j.level ? `<span class="badge ${JOB_LEVEL_BADGE[j.level] || ''}">${esc(j.level)}</span>` : '—'}</td>
