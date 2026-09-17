@@ -1177,6 +1177,13 @@ function jobsRender() {
     }
   });
 
+  const countEl = document.getElementById('jobs-count');
+  if (countEl) {
+    countEl.textContent = rows.length === jobs.length
+      ? `${jobs.length} opening${jobs.length === 1 ? '' : 's'}`
+      : `${rows.length} of ${jobs.length} opening${jobs.length === 1 ? '' : 's'}`;
+  }
+
   const tbody = document.getElementById('jobs-tbody');
   if (rows.length === 0) {
     tbody.innerHTML = `<tr id="jobs-empty-row"><td colspan="6" class="empty-msg">${jobs.length === 0 ? 'No jobs yet. Click "+ Add Job" to get started.' : 'No jobs match your search.'}</td></tr>`;

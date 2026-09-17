@@ -87,6 +87,7 @@ main {
 .toolbar input { flex: 1; min-width: 200px; }
 .toolbar input:focus, .toolbar select:focus { border-color: var(--primary); }
 .reload-status { font-size: 13px; color: var(--text-muted); align-self: center; }
+.jobs-count { font-size: 13px; color: var(--text-muted); align-self: center; margin-left: auto; white-space: nowrap; }
 
 /* ── Table ── */
 .table-wrapper {
