@@ -155,6 +155,32 @@ def sync_glassdoor_cache(entry):
         entry["glassdoor_notes"] = cache[company_key].get("glassdoor_notes", "")
 
 
+def ensure_company_exists(entry):
+    """Make sure every company seen in the Jobs tab also has a Companies
+    entry, so Companies stays the one place with every company you've come
+    across plus its reputation (via the glassdoor cache). Never overwrites
+    an existing company's fields."""
+    company_name = (entry.get("company") or "").strip()
+    if not company_name:
+        return
+    company_key = company_name.lower()
+    data = load_companies()
+    if any((c.get("company_name") or "").strip().lower() == company_key for c in data["companies"]):
+        return
+    data["companies"].append({
+        "id": str(uuid.uuid4()),
+        "company_name": company_name,
+        "url": "",
+        "industry": "",
+        "location": entry.get("location", ""),
+        "interest_level": None,
+        "benefits": "",
+        "notes": "",
+        "contacts": [],
+    })
+    save_companies(data)
+
+
 def compute_streak(history):
     today = date.today()
     streak = 0
@@ -513,6 +539,7 @@ def create_job():
     entry = request.get_json()
     entry["id"] = str(uuid.uuid4())
     sync_glassdoor_cache(entry)
+    ensure_company_exists(entry)
     data["jobs"].append(entry)
     save_jobs(data)
     return jsonify(entry), 201
@@ -526,6 +553,7 @@ def update_job(entry_id):
             updated = request.get_json()
             updated["id"] = entry_id
             sync_glassdoor_cache(updated)
+            ensure_company_exists(updated)
             data["jobs"][i] = updated
             save_jobs(data)
             return jsonify(updated)

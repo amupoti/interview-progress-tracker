@@ -447,6 +447,30 @@ def test_update_job_refreshes_glassdoor_cache(client):
     assert cache["acme"]["glassdoor_rating"] == 3.9
 
 
+def test_create_job_adds_new_company_to_companies_list(client):
+    client.post("/api/jobs", json={"company": "Acme", "title": "Staff SWE", "location": "Remote"})
+    companies = client.get("/api/companies").get_json()
+    assert len(companies) == 1
+    assert companies[0]["company_name"] == "Acme"
+    assert companies[0]["location"] == "Remote"
+    assert companies[0]["contacts"] == []
+
+
+def test_create_job_does_not_duplicate_existing_company(client):
+    client.post("/api/companies", json={"company_name": "Acme", "contacts": [{"name": "Jo"}]})
+    client.post("/api/jobs", json={"company": "acme", "title": "Staff SWE"})
+    companies = client.get("/api/companies").get_json()
+    assert len(companies) == 1
+    assert companies[0]["contacts"] == [{"name": "Jo"}]
+
+
+def test_update_job_adds_new_company_if_changed(client):
+    created = client.post("/api/jobs", json={"company": "Acme", "title": "Staff SWE"}).get_json()
+    client.put(f"/api/jobs/{created['id']}", json={"company": "Globex", "title": "Staff SWE"})
+    companies = {c["company_name"] for c in client.get("/api/companies").get_json()}
+    assert companies == {"Acme", "Globex"}
+
+
 def test_refresh_jobs_marks_closed_as_removed(client, monkeypatch):
     monkeypatch.setattr(app_module.time, "sleep", lambda s: None)
     open_job = client.post(
