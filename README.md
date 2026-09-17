@@ -86,7 +86,7 @@ New listings land in the `Pending` status so you can review them in bulk and man
 
 There is no LinkedIn or Glassdoor API integration, no stored credentials, and no background scraping job. The app itself only exposes a REST API (`GET/POST /api/jobs`, `PUT/DELETE /api/jobs/<id>`) for whatever job data you give it.
 
-Glassdoor ratings are cached server-side by company (`GET /api/glassdoor-cache`), since they rarely change: posting a job with a `glassdoor_rating` stores it under that company, and posting a later job for the same company without one gets it filled in automatically — so a company only needs to be looked up on Glassdoor once, ever.
+Glassdoor ratings are cached server-side by company (`GET /api/glassdoor-cache`), since they rarely change: posting a job with a `glassdoor_rating` stores it under that company, and posting a later job for the same company without one gets it filled in automatically — so a company only needs to be looked up on Glassdoor once, ever. The **Companies** tab reads from this same cache and shows a company's Glassdoor rating there too, even if that company currently has no tracked job listing.
 
 Listings are gathered as a manual research pass: an AI assistant (or you, by hand) browses LinkedIn job search results and Glassdoor company pages in your own already-logged-in browser session — the same way you'd browse them yourself — then POSTs the gathered entries into this app's API. It's a one-off/periodic pull, not a live sync: nothing here polls LinkedIn automatically, and no automated bulk scraping is performed. Re-run the research pass whenever you want fresh listings.
 

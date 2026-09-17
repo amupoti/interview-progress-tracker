@@ -21,6 +21,8 @@ let companies = [];
 let coEditingId = null;
 let coLoaded = false;
 let coContactCount = 0;
+let glassdoorCache = {};
+let gdLoaded = false;
 
 let jobs = [];
 let jobsEditingId = null;
@@ -440,9 +442,13 @@ function switchTab(tabName) {
     sdLoaded = true;
     sdFetchExercises();
   }
-  if (tabName === 'companies' && !coLoaded) {
-    coLoaded = true;
-    coFetchCompanies();
+  if (tabName === 'companies') {
+    if (!coLoaded) {
+      coLoaded = true;
+      coFetchCompanies();
+    } else if (!gdLoaded) {
+      fetchGlassdoorCache().then(coRender);
+    }
   }
   if (tabName === 'jobs' && !jobsLoaded) {
     jobsLoaded = true;
@@ -893,10 +899,22 @@ async function rqReset() {
 /* ────────────────────────────────────────────
    COMPANIES OF INTEREST
 ──────────────────────────────────────────── */
+async function fetchGlassdoorCache() {
+  if (gdLoaded) return;
+  gdLoaded = true;
+  const res = await fetch('/api/glassdoor-cache');
+  glassdoorCache = await res.json();
+}
+
 async function coFetchCompanies() {
-  const res = await fetch('/api/companies');
-  companies = await res.json();
+  const [coRes] = await Promise.all([fetch('/api/companies'), fetchGlassdoorCache()]);
+  companies = await coRes.json();
   coRender();
+}
+
+function coGlassdoor(companyName) {
+  if (!companyName) return null;
+  return glassdoorCache[companyName.trim().toLowerCase()] || null;
 }
 
 function coRender() {
@@ -911,11 +929,13 @@ function coRender() {
 
   const tbody = document.getElementById('co-tbody');
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr id="co-empty-row"><td colspan="5" class="empty-msg">${companies.length === 0 ? 'No companies yet. Click "+ Add Company" to get started.' : 'No companies match your search.'}</td></tr>`;
+    tbody.innerHTML = `<tr id="co-empty-row"><td colspan="6" class="empty-msg">${companies.length === 0 ? 'No companies yet. Click "+ Add Company" to get started.' : 'No companies match your search.'}</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = rows.map(c => `
+  tbody.innerHTML = rows.map(c => {
+    const gd = coGlassdoor(c.company_name);
+    return `
     <tr>
       <td>
         <strong>${esc(c.company_name)}</strong>
@@ -925,6 +945,10 @@ function coRender() {
       </td>
       <td>${coContactsCellHTML(c.contacts)}</td>
       <td style="max-width:240px;white-space:pre-wrap;">${esc(c.benefits || '—')}</td>
+      <td>
+        ${gd ? `${stars(Math.round(gd.glassdoor_rating))} <span style="font-size:12px;color:#64748b;">${gd.glassdoor_rating}</span>` : '—'}
+        ${gd && gd.glassdoor_notes ? `<br/><span style="font-size:12px;color:#64748b;white-space:pre-wrap;">${esc(gd.glassdoor_notes)}</span>` : ''}
+      </td>
       <td>${stars(c.interest_level)}</td>
       <td>
         <div class="actions">
@@ -933,7 +957,8 @@ function coRender() {
         </div>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function coContactsCellHTML(contacts) {
