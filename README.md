@@ -88,6 +88,19 @@ There is no LinkedIn or Glassdoor API integration, no stored credentials, and no
 
 Listings are gathered as a manual research pass: an AI assistant (or you, by hand) browses LinkedIn job search results and Glassdoor company pages in your own already-logged-in browser session — the same way you'd browse them yourself — then POSTs the gathered entries into this app's API. It's a one-off/periodic pull, not a live sync: nothing here polls LinkedIn automatically, and no automated bulk scraping is performed. Re-run the research pass whenever you want fresh listings.
 
+This can't be automated via a button in the app or a scheduled job — LinkedIn blocks unauthenticated server-side requests to its search endpoints outright, and a scheduled/cloud agent has no access to your logged-in browser session either. The only thing that works is a live AI coding session (e.g. Claude Code) driving your actual browser, triggered by you when you want a refresh.
+
+The **🔍 Search LinkedIn** button is a shortcut for browsing that search yourself: it opens a new tab straight to a LinkedIn job search prefilled with `"Senior Software Engineer" OR "Staff Software Engineer"` across Spain, sorted by most recent. It doesn't fetch or add anything itself.
+
+**A Claude Code skill is what actually does the gathering.** It's checked into this repo at `.claude/skills/update-jobs/SKILL.md`, so it's available to anyone who clones the repo and opens it in Claude Code — no setup beyond having the browser-automation tool (Claude in Chrome) connected. To use it, ask Claude to update/refresh the job list; it will:
+
+1. Browse your LinkedIn "Jobs that match your profile" feed *and* run an explicit "Senior Software Engineer" search — the feed alone misses variant titles like "Tech Lead" or "Architect", and the keyword search alone under-surfaces Senior roles once your title is Staff, so both are needed.
+2. Filter to Senior/Staff roles that are remote-in-Spain or hybrid/onsite specifically in Barcelona, skipping relocation-required postings, contract/freelance gigs, staffing-agency reposts, and generalist IT consultancies.
+3. Deduplicate against what's already in the Jobs tab (by LinkedIn job ID).
+4. Look up each new company's Glassdoor rating (or copy it from an existing entry at the same company) and add the listing via the API.
+
+See the skill file itself for the exact method, selectors, and edge cases it's already learned to handle.
+
 ## Project structure
 
 ```

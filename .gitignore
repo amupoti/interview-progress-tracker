@@ -16,3 +16,6 @@ data/interviews.json
 data/practice.json
 data/system_design.json
 data/challenges_progress.json
+
+# Claude Code local runtime state (skills under .claude/skills/ are tracked)
+.claude/scheduled_tasks.lock

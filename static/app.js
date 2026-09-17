@@ -119,6 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Jobs
   document.getElementById('btn-add-job').addEventListener('click', jobsOpenAdd);
   document.getElementById('btn-reload-jobs').addEventListener('click', jobsReload);
+  document.getElementById('btn-search-linkedin').addEventListener('click', jobsSearchLinkedIn);
   document.getElementById('jobs-btn-cancel').addEventListener('click', jobsCloseModal);
   document.getElementById('jobs-modal-close').addEventListener('click', jobsCloseModal);
   document.getElementById('jobs-modal-overlay').addEventListener('click', e => {
@@ -1082,6 +1083,12 @@ async function jobsFetchJobs() {
     coRender();
   }
   jobsRender();
+}
+
+function jobsSearchLinkedIn() {
+  const keywords = '"Senior Software Engineer" OR "Staff Software Engineer"';
+  const url = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent('Spain')}&sortBy=DD`;
+  window.open(url, '_blank', 'noopener');
 }
 
 async function jobsReload() {
