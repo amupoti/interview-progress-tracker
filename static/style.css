@@ -799,3 +799,36 @@ tr:hover td { background: #f8fafc; }
   .tab-nav { order: 3; width: 100%; justify-content: center; }
   #btn-add { order: 2; }
 }
+
+/* ── Pipeline ── */
+.pipeline-wrapper { max-width: 1400px; margin: 0 auto; padding: 24px; }
+.pipeline-toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); cursor: pointer; }
+.pipeline-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+.pipeline-chart svg { display: block; }
+.pipeline-link { stroke-opacity: .35; mix-blend-mode: multiply; transition: stroke-opacity .15s; }
+.pipeline-link:hover { stroke-opacity: .6; }
+.pipeline-toggle input { flex: none; min-width: 0; padding: 0; }
+.pipeline-label { font-size: 13px; font-weight: 500; fill: var(--text); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; pointer-events: none; }
+.pipeline-label-value { fill: var(--text-muted); }
+.pipeline-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.pipeline-table { margin-top: 16px; font-size: 13px; }
+.pipeline-table summary { cursor: pointer; color: var(--text-muted); }
+.pipeline-table table { margin-top: 8px; max-width: 420px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }

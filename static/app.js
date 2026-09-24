@@ -1,9 +1,4 @@
 /* ── State ── */
-let interviews = [];
-let sortCol = 'application_date';
-let sortDir = 'desc';
-let editingId = null;
-
 let practiceData = null;
 let practiceLoaded = false;
 
@@ -32,17 +27,6 @@ let jobsLoaded = false;
 let jobsSortCol = null;
 let jobsSortDir = 'asc';
 
-const STATUS_BADGE = {
-  'Applied':      'badge-applied',
-  'Phone Screen': 'badge-phone-screen',
-  'Technical':    'badge-technical',
-  'On-site':      'badge-on-site',
-  'Offer':        'badge-offer',
-  'Accepted':     'badge-accepted',
-  'Rejected':     'badge-rejected',
-  'Declined':     'badge-declined',
-};
-
 const JOB_STATUS_BADGE = {
   'Pending':      'badge-pending',
   'Interested':   'badge-interested',
@@ -67,29 +51,12 @@ const JOB_LEVEL_BADGE = {
 
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {
-  fetchInterviews();
+  jobsLoaded = true;
+  jobsFetchJobs();
 
-  document.getElementById('btn-add').addEventListener('click', openAddModal);
-  document.getElementById('btn-cancel').addEventListener('click', closeModal);
-  document.getElementById('modal-close').addEventListener('click', closeModal);
-  document.getElementById('modal-overlay').addEventListener('click', e => {
-    if (e.target === e.currentTarget) closeModal();
-  });
-  document.getElementById('entry-form').addEventListener('submit', handleSubmit);
-  document.getElementById('search-input').addEventListener('input', renderTable);
-  document.getElementById('status-filter').addEventListener('change', renderTable);
-
-  document.querySelectorAll('#interviews-table th[data-col]').forEach(th => {
-    th.addEventListener('click', () => {
-      const col = th.dataset.col;
-      if (sortCol === col) {
-        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-      } else {
-        sortCol = col;
-        sortDir = 'asc';
-      }
-      renderTable();
-    });
+  document.getElementById('pipeline-include-untouched').addEventListener('change', pipelineRender);
+  window.addEventListener('resize', () => {
+    if (!document.getElementById('tab-pipeline').classList.contains('hidden')) pipelineRender();
   });
 
   // Tab switching
@@ -159,229 +126,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-/* ── API ── */
-async function fetchInterviews() {
-  const res = await fetch('/api/interviews');
-  interviews = await res.json();
-  renderTable();
-  renderUpcoming();
-}
-
-async function saveEntry(entry) {
-  if (editingId) {
-    const res = await fetch(`/api/interviews/${editingId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(entry),
-    });
-    return res.json();
-  } else {
-    const res = await fetch('/api/interviews', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(entry),
-    });
-    return res.json();
-  }
-}
-
-async function deleteEntry(id) {
-  await fetch(`/api/interviews/${id}`, { method: 'DELETE' });
-}
-
-/* ── Render table ── */
-function renderTable() {
-  const search = document.getElementById('search-input').value.toLowerCase();
-  const statusFilter = document.getElementById('status-filter').value;
-
-  let rows = interviews.filter(e => {
-    const matchText =
-      (e.company_name || '').toLowerCase().includes(search) ||
-      (e.job_title || '').toLowerCase().includes(search);
-    const matchStatus = !statusFilter || e.status === statusFilter;
-    return matchText && matchStatus;
-  });
-
-  // Sort
-  rows.sort((a, b) => {
-    let va = a[sortCol] ?? '';
-    let vb = b[sortCol] ?? '';
-    if (typeof va === 'number' || !isNaN(Number(va))) {
-      va = Number(va) || 0;
-      vb = Number(vb) || 0;
-    }
-    if (va < vb) return sortDir === 'asc' ? -1 : 1;
-    if (va > vb) return sortDir === 'asc' ? 1 : -1;
-    return 0;
-  });
-
-  // Update sort indicators
-  document.querySelectorAll('#interviews-table th[data-col]').forEach(th => {
-    th.classList.remove('sort-asc', 'sort-desc');
-    if (th.dataset.col === sortCol) {
-      th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
-    }
-  });
-
-  const tbody = document.getElementById('interviews-tbody');
-  if (rows.length === 0) {
-    tbody.innerHTML = `<tr id="empty-row"><td colspan="11" class="empty-msg">No applications match your filters.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = rows.map(e => `
-    <tr data-id="${e.id}">
-      <td>
-        <strong>${esc(e.company_name)}</strong>
-        ${e.job_url ? `<br/><a href="${esc(e.job_url)}" target="_blank" style="font-size:12px;color:#4f46e5;">↗ posting</a>` : ''}
-        ${e.location ? `<br/><span style="font-size:12px;color:#64748b;">📍 ${esc(e.location)}</span>` : ''}
-      </td>
-      <td>
-        ${esc(e.job_title || '—')}
-        ${e.tech_stack ? `<br/><span style="font-size:12px;color:#64748b;">${esc(e.tech_stack)}</span>` : ''}
-      </td>
-      <td><span class="badge ${STATUS_BADGE[e.status] || ''}">${esc(e.status || '—')}</span></td>
-      <td>${formatDate(e.application_date)}</td>
-      <td>${formatDate(e.next_interview_date)}</td>
-      <td>${esc(e.next_interview_type || '—')}</td>
-      <td style="text-align:center">${e.interviews_completed ?? 0}</td>
-      <td>${salaryRange(e)}</td>
-      <td style="text-align:center">${e.remote_days != null ? e.remote_days + '/5' : '—'}</td>
-      <td>${stars(e.interest_level)}</td>
-      <td>
-        <div class="actions">
-          <button class="btn-icon" title="Edit" onclick="openEditModal('${e.id}')">✏️</button>
-          <button class="btn-icon danger" title="Delete" onclick="confirmDelete('${e.id}')">🗑</button>
-        </div>
-      </td>
-    </tr>
-  `).join('');
-}
-
-/* ── Render upcoming ── */
-function renderUpcoming() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const in7 = new Date(today);
-  in7.setDate(in7.getDate() + 7);
-
-  const upcoming = interviews.filter(e => {
-    if (!e.next_interview_date) return false;
-    const d = new Date(e.next_interview_date);
-    return d >= today && d <= in7;
-  }).sort((a, b) => a.next_interview_date.localeCompare(b.next_interview_date));
-
-  const section = document.getElementById('upcoming-section');
-  const list = document.getElementById('upcoming-list');
-
-  if (upcoming.length === 0) {
-    section.classList.add('hidden');
-    return;
-  }
-  section.classList.remove('hidden');
-  list.innerHTML = upcoming.map(e => `
-    <li>
-      <strong>${esc(e.company_name)}</strong>
-      ${esc(e.job_title ? '· ' + e.job_title : '')}
-      <span style="color:#92400e">${formatDate(e.next_interview_date)}</span>
-    </li>
-  `).join('');
-}
-
-/* ── Modal ── */
-function openAddModal() {
-  editingId = null;
-  document.getElementById('modal-title').textContent = 'Add Application';
-  document.getElementById('entry-form').reset();
-  document.getElementById('f-id').value = '';
-  document.getElementById('f-status').value = 'Applied';
-  document.getElementById('f-application_date').value = todayISO();
-  document.getElementById('f-interviews_completed').value = '0';
-  clearInvalid();
-  document.getElementById('modal-overlay').classList.remove('hidden');
-}
-
-function openEditModal(id) {
-  const e = interviews.find(x => x.id === id);
-  if (!e) return;
-  editingId = id;
-  document.getElementById('modal-title').textContent = 'Edit Application';
-
-  const fields = [
-    'company_name', 'job_title', 'status', 'application_date', 'next_interview_date',
-    'next_interview_type', 'interviews_completed', 'salary_range_min', 'salary_range_max',
-    'remote_days', 'location', 'tech_stack', 'interest_level', 'offer_deadline',
-    'contact_name', 'contact_email', 'job_url', 'notes',
-  ];
-  fields.forEach(f => {
-    const el = document.getElementById('f-' + f);
-    if (el) el.value = e[f] ?? '';
-  });
-  clearInvalid();
-  document.getElementById('modal-overlay').classList.remove('hidden');
-}
-
-function closeModal() {
-  document.getElementById('modal-overlay').classList.add('hidden');
-  editingId = null;
-}
-
-/* ── Form submit ── */
-async function handleSubmit(evt) {
-  evt.preventDefault();
-  const nameEl = document.getElementById('f-company_name');
-  if (!nameEl.value.trim()) {
-    nameEl.classList.add('invalid');
-    nameEl.focus();
-    return;
-  }
-  nameEl.classList.remove('invalid');
-
-  const entry = {
-    company_name:        document.getElementById('f-company_name').value.trim(),
-    job_title:           document.getElementById('f-job_title').value.trim(),
-    status:              document.getElementById('f-status').value,
-    application_date:    document.getElementById('f-application_date').value,
-    next_interview_date: document.getElementById('f-next_interview_date').value,
-    next_interview_type: document.getElementById('f-next_interview_type').value.trim(),
-    interviews_completed: parseInt(document.getElementById('f-interviews_completed').value) || 0,
-    salary_range_min:    toNum(document.getElementById('f-salary_range_min').value),
-    salary_range_max:    toNum(document.getElementById('f-salary_range_max').value),
-    remote_days:         toNum(document.getElementById('f-remote_days').value),
-    location:            document.getElementById('f-location').value.trim(),
-    tech_stack:          document.getElementById('f-tech_stack').value.trim(),
-    interest_level:      toNum(document.getElementById('f-interest_level').value),
-    offer_deadline:      document.getElementById('f-offer_deadline').value,
-    contact_name:        document.getElementById('f-contact_name').value.trim(),
-    contact_email:       document.getElementById('f-contact_email').value.trim(),
-    job_url:             document.getElementById('f-job_url').value.trim(),
-    notes:               document.getElementById('f-notes').value.trim(),
-  };
-
-  const saved = await saveEntry(entry);
-
-  if (editingId) {
-    interviews = interviews.map(x => x.id === editingId ? saved : x);
-  } else {
-    interviews.push(saved);
-  }
-
-  closeModal();
-  renderTable();
-  renderUpcoming();
-}
-
-/* ── Delete ── */
-async function confirmDelete(id) {
-  const e = interviews.find(x => x.id === id);
-  if (!e) return;
-  if (!confirm(`Delete application for "${e.company_name}"?`)) return;
-  await deleteEntry(id);
-  interviews = interviews.filter(x => x.id !== id);
-  renderTable();
-  renderUpcoming();
-}
-
 /* ── Helpers ── */
 function esc(str) {
   if (!str) return '';
@@ -396,18 +140,6 @@ function formatDate(iso) {
   if (!iso) return '—';
   const [y, m, d] = iso.split('-');
   return `${d}/${m}/${y}`;
-}
-
-function salaryRange(e) {
-  const min = e.salary_range_min;
-  const max = e.salary_range_max;
-  if (!min && !max) return '—';
-  if (min && max) return `${fmtNum(min)} – ${fmtNum(max)}`;
-  return fmtNum(min || max);
-}
-
-function fmtNum(n) {
-  return Number(n).toLocaleString();
 }
 
 function stars(level) {
@@ -436,7 +168,7 @@ function switchTab(tabName) {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tabName);
   });
-  ['tracker', 'practice', 'recruiter', 'challenges', 'system-design', 'companies', 'jobs', 'progress'].forEach(t => {
+  ['practice', 'recruiter', 'challenges', 'system-design', 'companies', 'jobs', 'pipeline', 'progress'].forEach(t => {
     document.getElementById('tab-' + t).classList.toggle('hidden', tabName !== t);
   });
 
@@ -470,6 +202,9 @@ function switchTab(tabName) {
   }
   if (tabName === 'progress') {
     loadProgress();
+  }
+  if (tabName === 'pipeline') {
+    pipelineLoad();
   }
 }
 
@@ -1151,6 +886,28 @@ async function jobsFetchJobs() {
   jobsRender();
 }
 
+function jobsRenderUpcoming() {
+  const today = todayISO();
+  const in7 = new Date();
+  in7.setDate(in7.getDate() + 7);
+  const until = in7.toISOString().split('T')[0];
+
+  const upcoming = jobs.filter(j =>
+    j.next_interview_date && j.next_interview_date >= today && j.next_interview_date <= until &&
+    !JOB_SUNK_STATUSES.includes(j.status)
+  ).sort((a, b) => a.next_interview_date.localeCompare(b.next_interview_date));
+
+  const section = document.getElementById('upcoming-section');
+  section.classList.toggle('hidden', upcoming.length === 0);
+  document.getElementById('upcoming-list').innerHTML = upcoming.map(j => `
+    <li>
+      <strong>${esc(j.company)}</strong>
+      ${esc(j.title || '')}
+      <span style="color:#92400e">${formatDate(j.next_interview_date)}${j.next_interview_type ? ' · ' + esc(j.next_interview_type) : ''}</span>
+    </li>
+  `).join('');
+}
+
 function jobsSearchLinkedIn() {
   const keywords = '"Senior Software Engineer" OR "Staff Software Engineer"';
   const url = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent('Spain')}&sortBy=DD`;
@@ -1188,10 +945,17 @@ function jobsColValue(j, col) {
     case 'level':            return (j.level || '').toLowerCase();
     case 'location':         return (j.location || '').toLowerCase();
     case 'glassdoor_rating': return j.glassdoor_rating != null && j.glassdoor_rating !== '' ? Number(j.glassdoor_rating) : -1;
-    case 'status':           return (j.status || '').toLowerCase();
+    case 'status':           return jobStatusRank(j);
     case 'date_added':       return j.date_added || '';
     default:                 return '';
   }
+}
+
+// Furthest along the process first, then closed-out jobs.
+const JOB_STATUS_ORDER = ['Offer', 'Interviewing', 'Applied', 'Interested', 'Pending', 'Rejected', 'Discarded', 'Removed'];
+function jobStatusRank(j) {
+  const i = JOB_STATUS_ORDER.indexOf(j.status || 'Pending');
+  return i === -1 ? JOB_STATUS_ORDER.length : i;
 }
 
 const JOB_SUNK_STATUSES = ['Rejected', 'Discarded'];
@@ -1200,6 +964,7 @@ function jobSinksToBottom(j) {
 }
 
 function jobsRender() {
+  jobsRenderUpcoming();
   const search = document.getElementById('jobs-search').value.toLowerCase();
   const workModeFilter = document.getElementById('jobs-work-mode-filter').value;
   const levelFilter = document.getElementById('jobs-level-filter').value;
@@ -1225,9 +990,8 @@ function jobsRender() {
     });
   } else {
     rows.sort((a, b) => {
-      const aSunk = jobSinksToBottom(a);
-      const bSunk = jobSinksToBottom(b);
-      if (aSunk !== bSunk) return aSunk - bSunk;
+      const byStatus = jobStatusRank(a) - jobStatusRank(b);
+      if (byStatus) return byStatus;
       const aHas = jobContacts(a.company).length > 0 ? 1 : 0;
       const bHas = jobContacts(b.company).length > 0 ? 1 : 0;
       if (aHas !== bHas) return bHas - aHas;
@@ -1276,7 +1040,10 @@ function jobsRender() {
         ${j.glassdoor_rating != null && j.glassdoor_rating !== '' ? `${stars(Math.round(j.glassdoor_rating))} <span style="font-size:12px;color:#64748b;">${j.glassdoor_rating}</span>` : '—'}
         ${j.glassdoor_notes ? `<br/><span style="font-size:12px;color:#64748b;white-space:pre-wrap;">${esc(j.glassdoor_notes)}</span>` : ''}
       </td>
-      <td><span class="badge ${JOB_STATUS_BADGE[j.status] || ''}">${esc(j.status || '—')}</span></td>
+      <td>
+        <span class="badge ${JOB_STATUS_BADGE[j.status] || ''}">${esc(j.status || '—')}</span>
+        ${j.next_interview_date ? `<br/><span style="font-size:12px;color:#64748b;">📅 ${formatDate(j.next_interview_date)}${j.next_interview_type ? ' · ' + esc(j.next_interview_type) : ''}</span>` : ''}
+      </td>
       <td>${formatDate(j.date_added)}</td>
       <td>
         <div class="actions">
@@ -1315,6 +1082,8 @@ function jobsOpenEdit(id) {
   document.getElementById('jobs-f-glassdoor_rating').value = j.glassdoor_rating != null ? j.glassdoor_rating : '';
   document.getElementById('jobs-f-status').value = j.status || 'Pending';
   document.getElementById('jobs-f-date_added').value = j.date_added || todayISO();
+  document.getElementById('jobs-f-next_interview_date').value = j.next_interview_date || '';
+  document.getElementById('jobs-f-next_interview_type').value = j.next_interview_type || '';
   document.getElementById('jobs-f-glassdoor_notes').value = j.glassdoor_notes || '';
   document.getElementById('jobs-f-notes').value = j.notes || '';
 
@@ -1359,6 +1128,8 @@ async function jobsHandleSubmit(evt) {
     glassdoor_rating: toNum(document.getElementById('jobs-f-glassdoor_rating').value),
     status:           document.getElementById('jobs-f-status').value,
     date_added:       document.getElementById('jobs-f-date_added').value || todayISO(),
+    next_interview_date: document.getElementById('jobs-f-next_interview_date').value,
+    next_interview_type: document.getElementById('jobs-f-next_interview_type').value.trim(),
     glassdoor_notes:  document.getElementById('jobs-f-glassdoor_notes').value.trim(),
     notes:            document.getElementById('jobs-f-notes').value.trim(),
   };
@@ -1392,4 +1163,169 @@ async function jobsConfirmDelete(id) {
   await fetch(`/api/jobs/${id}`, { method: 'DELETE' });
   jobs = jobs.filter(x => x.id !== id);
   jobsRender();
+}
+
+/* ────────────────────────────────────────────
+   PIPELINE (Sankey of job status changes)
+──────────────────────────────────────────── */
+// Column each status is drawn in; statuses sharing a column are alternative outcomes.
+const PIPELINE_STAGE = {
+  'Pending': 0, 'Interested': 1, 'Applied': 2, 'Interviewing': 3,
+  'Offer': 4, 'Rejected': 5, 'Discarded': 5, 'Removed': 6,
+};
+const PIPELINE_COLOR = {
+  'Pending':      '#94a3b8',
+  'Interested':   '#2a78d6',
+  'Applied':      '#4a3aa7',
+  'Interviewing': '#eda100',
+  'Offer':        '#008300',
+  'Rejected':     '#e34948',
+  'Discarded':    '#475569',
+  'Removed':      '#a8a29e',
+};
+
+let pipelineJobs = [];
+
+async function pipelineLoad() {
+  const res = await fetch('/api/jobs');
+  pipelineJobs = await res.json();
+  pipelineRender();
+}
+
+// Collapse a job's history into a forward-only path. Moving back to an earlier
+// (or same-column) status is treated as undoing the later steps, so the chart
+// stays acyclic and every job ends in the node matching its current status.
+function pipelinePath(history) {
+  const path = [];
+  history.forEach(({ status }) => {
+    const stage = PIPELINE_STAGE[status];
+    if (stage === undefined) return;
+    while (path.length && PIPELINE_STAGE[path[path.length - 1]] >= stage) path.pop();
+    path.push(status);
+  });
+  return path;
+}
+
+function pipelineRender() {
+  const includeUntouched = document.getElementById('pipeline-include-untouched').checked;
+  const paths = pipelineJobs
+    .map(j => pipelinePath(j.status_history || [{ status: j.status || 'Pending' }]))
+    .filter(p => p.length && (includeUntouched || p.length > 1));
+
+  const reached = {};
+  const current = {};
+  const linkCounts = {};
+  paths.forEach(p => {
+    p.forEach(s => { reached[s] = (reached[s] || 0) + 1; });
+    const last = p[p.length - 1];
+    current[last] = (current[last] || 0) + 1;
+    for (let i = 1; i < p.length; i++) {
+      const key = p[i - 1] + '→' + p[i];
+      linkCounts[key] = (linkCounts[key] || 0) + 1;
+    }
+  });
+
+  const summary = document.getElementById('pipeline-summary');
+  summary.textContent = `${paths.length} of ${pipelineJobs.length} jobs shown`;
+
+  const links = Object.entries(linkCounts)
+    .map(([key, value]) => { const [source, target] = key.split('→'); return { source, target, value }; })
+    .sort((a, b) => PIPELINE_STAGE[a.source] - PIPELINE_STAGE[b.source] || b.value - a.value);
+
+  document.getElementById('pipeline-tbody').innerHTML = links.length
+    ? links.map(l => `<tr><td>${esc(l.source)}</td><td>${esc(l.target)}</td><td>${l.value}</td></tr>`).join('')
+    : '<tr><td colspan="3" class="empty-msg">No status changes yet.</td></tr>';
+
+  const chart = document.getElementById('pipeline-chart');
+  chart.innerHTML = '';
+  if (!paths.length) {
+    chart.innerHTML = '<p class="empty-msg">No status changes yet. Move a job out of Pending to see it flow here.</p>';
+    return;
+  }
+  pipelineDraw(chart, reached, current, links);
+}
+
+function pipelineDraw(chart, reached, current, links) {
+  const statuses = Object.keys(reached).sort((a, b) => PIPELINE_STAGE[a] - PIPELINE_STAGE[b]);
+  const columns = [...new Set(statuses.map(s => PIPELINE_STAGE[s]))];
+  const width = chart.clientWidth;
+  const height = 440;
+  const pad = { x: 110, y: 12 };
+  const nodeWidth = 12;
+  const nodeGap = 28;
+
+  // Stack each column's nodes top to bottom; one scale for all columns so
+  // heights are comparable. A node's height counts every job that reached it,
+  // so jobs that stopped there show as height beyond the outgoing flows.
+  const byColumn = columns.map(c => statuses.filter(s => PIPELINE_STAGE[s] === c));
+  const scale = Math.min(...byColumn.map(names =>
+    (height - 2 * pad.y - nodeGap * (names.length - 1)) / names.reduce((t, n) => t + reached[n], 0)));
+  const colStep = columns.length > 1 ? (width - 2 * pad.x - nodeWidth) / (columns.length - 1) : 0;
+  const nodes = {};
+  byColumn.forEach((names, ci) => {
+    const colHeight = names.reduce((t, n) => t + reached[n] * scale, 0) + nodeGap * (names.length - 1);
+    let y = (height - colHeight) / 2;
+    names.forEach(name => {
+      const h = reached[name] * scale;
+      nodes[name] = { name, col: ci, x0: pad.x + ci * colStep, y0: y, h, outY: y, inY: y };
+      y += h + nodeGap;
+    });
+  });
+
+  // Each flow leaves from the top of its source's remaining space and enters
+  // at the top of its target's, ordered so ribbons don't cross needlessly.
+  const flows = links.map(l => ({ ...l, w: l.value * scale }));
+  const midY = n => nodes[n].y0 + nodes[n].h / 2;
+  [...flows].sort((a, b) => midY(a.target) - midY(b.target) || nodes[a.target].col - nodes[b.target].col).forEach(f => {
+    f.sy = nodes[f.source].outY + f.w / 2;
+    nodes[f.source].outY += f.w;
+  });
+  [...flows].sort((a, b) => midY(a.source) - midY(b.source) || nodes[b.source].col - nodes[a.source].col).forEach(f => {
+    f.ty = nodes[f.target].inY + f.w / 2;
+    nodes[f.target].inY += f.w;
+  });
+
+  const jobsLabel = n => `${n} job${n === 1 ? '' : 's'}`;
+  const lastCol = columns.length - 1;
+  const flowSvg = flows.map((f, i) => {
+    const sx = nodes[f.source].x0 + nodeWidth;
+    const tx = nodes[f.target].x0;
+    const mx = (sx + tx) / 2;
+    return `<path class="pipeline-link" data-flow="${i}" fill="none" stroke="${PIPELINE_COLOR[f.target]}"
+      stroke-width="${Math.max(2, f.w)}" d="M${sx},${f.sy}C${mx},${f.sy} ${mx},${f.ty} ${tx},${f.ty}"/>`;
+  }).join('');
+  const nodeSvg = Object.values(nodes).map(n => {
+    const right = n.col === lastCol && lastCol > 0;
+    const lx = right ? n.x0 + nodeWidth + 8 : n.x0 - 8;
+    return `<g data-node="${esc(n.name)}">
+      <rect x="${n.x0}" y="${n.y0}" width="${nodeWidth}" height="${Math.max(2, n.h)}" rx="2" fill="${PIPELINE_COLOR[n.name]}"/>
+      <text class="pipeline-label" x="${lx}" y="${n.y0 + n.h / 2}" dy="0.35em" text-anchor="${right ? 'start' : 'end'}">
+        ${esc(n.name)}<tspan class="pipeline-label-value" dx="6">${reached[n.name]}</tspan>
+      </text>
+    </g>`;
+  }).join('');
+  chart.innerHTML = `<svg width="${width}" height="${height}" role="img"
+    aria-label="Flow of jobs between statuses">${flowSvg}${nodeSvg}</svg>`;
+
+  const tooltip = document.getElementById('pipeline-tooltip');
+  chart.onmousemove = event => {
+    const flowEl = event.target.closest('[data-flow]');
+    const nodeEl = event.target.closest('[data-node]');
+    let html = null;
+    if (flowEl) {
+      const f = flows[flowEl.dataset.flow];
+      html = `<strong>${esc(f.source)} → ${esc(f.target)}</strong><br>${jobsLabel(f.value)}`;
+    } else if (nodeEl) {
+      const name = nodeEl.dataset.node;
+      html = `<strong>${esc(name)}</strong><br>${jobsLabel(reached[name])} reached` +
+        `<br>${jobsLabel(current[name] || 0)} currently here`;
+    }
+    if (!html) { tooltip.classList.add('hidden'); return; }
+    tooltip.innerHTML = html;
+    tooltip.classList.remove('hidden');
+    const box = chart.parentElement.getBoundingClientRect();
+    tooltip.style.left = (event.clientX - box.left + 14) + 'px';
+    tooltip.style.top = (event.clientY - box.top + 14) + 'px';
+  };
+  chart.onmouseleave = () => tooltip.classList.add('hidden');
 }

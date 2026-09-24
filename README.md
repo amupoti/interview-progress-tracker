@@ -27,36 +27,14 @@ Existing JSON data is imported automatically the first time each data set is acc
 
 ## Features
 
-- Add, edit, and delete job applications
-- Track status across 8 stages: `Applied → Phone Screen → Technical → On-site → Offer → Accepted / Rejected / Declined`
-- Upcoming interviews panel (next 7 days)
-- Sort by any column
-- Filter by company name, role, or status
-- **Jobs tab** — track candidate listings you're still deciding on (see below) before they become full applications
-
-## Fields tracked per application
-
-| Field | Description |
-|---|---|
-| Company Name | Name of the company |
-| Job Title | Role you applied for |
-| Status | Current stage in the process |
-| Application Date | When you applied (defaults to today) |
-| Next Interview Date | Upcoming interview date |
-| Interviews Completed | How many rounds done so far |
-| Salary Min / Max | Expected salary range |
-| Remote Days / Week | Days of remote work (0–5) |
-| Location | City, country |
-| Tech Stack | Technologies involved |
-| Interest Level | Your priority (1–5 stars) |
-| Offer Deadline | When the offer expires |
-| Contact Name / Email | Recruiter or hiring manager |
-| Job Posting URL | Link to the original listing |
-| Notes | Freeform notes, feedback, prep reminders |
+- **Jobs tab** — every listing you're tracking, from first sighting through to offer (see below)
+- Upcoming interviews panel (next 7 days) at the top of the Jobs tab
+- **Pipeline tab** — a Sankey chart of how jobs have moved between statuses
+- Behavioral, recruiter, code-challenge, and system-design practice tabs, with a combined Progress view
 
 ## Jobs tab
 
-The Jobs tab is a lightweight triage list for job listings you've found but haven't decided to apply to yet — a staging area that sits before the Applications tab. Add, edit, and delete entries the same way as Applications.
+The Jobs tab tracks each listing from the moment you find it until it ends in an offer, a rejection, or you drop it. Add, edit, and delete entries from the table.
 
 **Fields tracked per job**
 
@@ -72,15 +50,19 @@ The Jobs tab is a lightweight triage list for job listings you've found but have
 | Glassdoor Notes | Review highlights, red flags, sample size caveats, etc. |
 | Status | `Pending` (default) → `Interested` → `Applied` → `Interviewing` → `Offer` / `Rejected` / `Discarded` |
 | Date Added | Defaults to today |
+| Next Interview Date / Type | Upcoming round (e.g. Recruiter Screen, Technical, On-site); feeds the Upcoming Interviews panel |
 | Notes | Freeform notes |
 
 **Filtering and sorting**
 
 - Filter by work mode (Remote / Hybrid / Onsite), by level (Senior / Staff / Other), or free-text search across company, title, location, level, and notes.
 - Click any column header to sort by it.
-- With no column sort active, rows default-sort with **referral-aware ranking**: any job at a company that has a contact listed in the **Companies** tab floats to the top, with Glassdoor rating as the tiebreaker. Add a contact name to a company in the Companies tab and its open roles automatically jump to the top of the Jobs list.
+- With no column sort active, rows default-sort **by how far along the process they are**: `Offer` → `Interviewing` → `Applied` → `Interested` → `Pending`, then closed-out `Rejected` / `Discarded` / `Removed` at the bottom. Sorting by the Status column uses the same order.
+- Within a status, **referral-aware ranking** applies: any job at a company that has a contact listed in the **Companies** tab floats to the top, with Glassdoor rating as the tiebreaker.
 
 New listings land in the `Pending` status so you can review them in bulk and manually promote the ones worth pursuing to `Interested`.
+
+Every status change is recorded with its date in the job's `status_history`, which is what the **Pipeline** tab charts. The **🔄 Reload Offers** button marks listings whose LinkedIn posting has closed as `Removed`, but only while they're still `Pending` or `Interested` — once you've applied, a closed posting doesn't touch the job.
 
 ### How the LinkedIn/Glassdoor data gets in
 

@@ -13,69 +13,17 @@
     <div class="header-inner">
       <h1>🗂 Interview Tracker</h1>
       <nav class="tab-nav" id="main-tabs">
-        <button class="tab-btn active" data-tab="tracker">📋 Applications</button>
         <button class="tab-btn" data-tab="practice">🧠 Behavioral</button>
         <button class="tab-btn" data-tab="recruiter">🎤 Recruiter</button>
         <button class="tab-btn" data-tab="challenges">💻 Code Challenges</button>
         <button class="tab-btn" data-tab="system-design">🏗 System Design</button>
         <button class="tab-btn" data-tab="companies">🏢 Companies</button>
-        <button class="tab-btn" data-tab="jobs">💼 Jobs</button>
+        <button class="tab-btn active" data-tab="jobs">💼 Jobs</button>
+        <button class="tab-btn" data-tab="pipeline">🔀 Pipeline</button>
         <button class="tab-btn" data-tab="progress">📊 Progress</button>
       </nav>
     </div>
   </header>
-
-  <!-- Applications tab -->
-  <div id="tab-tracker">
-    <main>
-      <!-- Upcoming interviews panel -->
-      <section id="upcoming-section" class="upcoming-panel hidden">
-        <h2>📅 Upcoming Interviews (next 7 days)</h2>
-        <ul id="upcoming-list"></ul>
-      </section>
-
-      <!-- Filters -->
-      <div class="toolbar">
-        <button id="btn-add" class="btn btn-primary">+ Add Application</button>
-        <input type="text" id="search-input" placeholder="Search company or role…" />
-        <select id="status-filter">
-          <option value="">All statuses</option>
-          <option>Applied</option>
-          <option>Phone Screen</option>
-          <option>Technical</option>
-          <option>On-site</option>
-          <option>Offer</option>
-          <option>Accepted</option>
-          <option>Rejected</option>
-          <option>Declined</option>
-        </select>
-      </div>
-
-      <!-- Table -->
-      <div class="table-wrapper">
-        <table id="interviews-table">
-          <thead>
-            <tr>
-              <th data-col="company_name">Company <span class="sort-icon">↕</span></th>
-              <th data-col="job_title">Role <span class="sort-icon">↕</span></th>
-              <th data-col="status">Status <span class="sort-icon">↕</span></th>
-              <th data-col="application_date">Applied <span class="sort-icon">↕</span></th>
-              <th data-col="next_interview_date">Next Interview <span class="sort-icon">↕</span></th>
-              <th data-col="next_interview_type">Interview Type <span class="sort-icon">↕</span></th>
-              <th data-col="interviews_completed">Interviews <span class="sort-icon">↕</span></th>
-              <th data-col="salary_range_min">Salary Range <span class="sort-icon">↕</span></th>
-              <th data-col="remote_days">Remote <span class="sort-icon">↕</span></th>
-              <th data-col="interest_level">Interest <span class="sort-icon">↕</span></th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="interviews-tbody">
-            <tr id="empty-row"><td colspan="11" class="empty-msg">No applications yet. Click "+ Add Application" to get started.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </main>
-  </div>
 
   <!-- Daily Practice tab -->
   <div id="tab-practice" class="hidden">
@@ -280,8 +228,13 @@
   </div>
 
   <!-- Jobs tab -->
-  <div id="tab-jobs" class="hidden">
+  <div id="tab-jobs">
     <div class="jobs-wrapper">
+
+      <section id="upcoming-section" class="upcoming-panel hidden">
+        <h2>📅 Upcoming Interviews (next 7 days)</h2>
+        <ul id="upcoming-list"></ul>
+      </section>
 
       <div class="toolbar">
         <button id="btn-add-job" class="btn btn-primary">+ Add Job</button>
@@ -323,6 +276,30 @@
         </table>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Pipeline tab -->
+  <div id="tab-pipeline" class="hidden">
+    <div class="pipeline-wrapper">
+      <div class="toolbar">
+        <label class="pipeline-toggle">
+          <input type="checkbox" id="pipeline-include-untouched" />
+          Include listings still Pending
+        </label>
+        <span id="pipeline-summary" class="jobs-count"></span>
+      </div>
+      <div class="pipeline-card">
+        <div id="pipeline-chart" class="pipeline-chart"></div>
+        <div id="pipeline-tooltip" class="pipeline-tooltip hidden"></div>
+      </div>
+      <details class="pipeline-table">
+        <summary>Show as table</summary>
+        <table>
+          <thead><tr><th>From</th><th>To</th><th>Jobs</th></tr></thead>
+          <tbody id="pipeline-tbody"></tbody>
+        </table>
+      </details>
     </div>
   </div>
 
@@ -443,6 +420,24 @@
             <label>Date Added</label>
             <input type="date" id="jobs-f-date_added" />
           </div>
+          <div class="form-group">
+            <label>Next Interview Date</label>
+            <input type="date" id="jobs-f-next_interview_date" />
+          </div>
+          <div class="form-group">
+            <label>Next Interview Type</label>
+            <input type="text" id="jobs-f-next_interview_type" list="interview-type-options" placeholder="e.g. Technical, On-site…" autocomplete="off" />
+            <datalist id="interview-type-options">
+              <option value="Recruiter Screen"></option>
+              <option value="Hiring Manager"></option>
+              <option value="Technical"></option>
+              <option value="System Design"></option>
+              <option value="Behavioral"></option>
+              <option value="On-site"></option>
+              <option value="Final Round"></option>
+              <option value="Offer Discussion"></option>
+            </datalist>
+          </div>
           <div class="form-group full-width">
             <label>Glassdoor Notes</label>
             <textarea id="jobs-f-glassdoor_notes" rows="2" placeholder="Review highlights, red flags…"></textarea>
@@ -502,118 +497,6 @@
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" id="sd-btn-cancel">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Modal -->
-  <div id="modal-overlay" class="modal-overlay hidden">
-    <div class="modal">
-      <div class="modal-header">
-        <h2 id="modal-title">Add Application</h2>
-        <button class="modal-close" id="modal-close">✕</button>
-      </div>
-      <form id="entry-form" novalidate>
-        <input type="hidden" id="f-id" />
-
-        <div class="form-grid">
-          <div class="form-group required">
-            <label>Company Name</label>
-            <input type="text" id="f-company_name" required />
-          </div>
-          <div class="form-group">
-            <label>Job Title / Role</label>
-            <input type="text" id="f-job_title" />
-          </div>
-          <div class="form-group">
-            <label>Status</label>
-            <select id="f-status">
-              <option>Applied</option>
-              <option>Phone Screen</option>
-              <option>Technical</option>
-              <option>On-site</option>
-              <option>Offer</option>
-              <option>Accepted</option>
-              <option>Rejected</option>
-              <option>Declined</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Application Date</label>
-            <input type="date" id="f-application_date" />
-          </div>
-          <div class="form-group">
-            <label>Next Interview Date</label>
-            <input type="date" id="f-next_interview_date" />
-          </div>
-          <div class="form-group">
-            <label>Next Interview Type</label>
-            <input type="text" id="f-next_interview_type" list="interview-type-options" placeholder="e.g. Technical, On-site…" autocomplete="off" />
-            <datalist id="interview-type-options">
-              <option value="Phone Screen"></option>
-              <option value="Technical"></option>
-              <option value="System Design"></option>
-              <option value="Behavioral"></option>
-              <option value="On-site"></option>
-              <option value="HR"></option>
-              <option value="Final Round"></option>
-              <option value="Offer Discussion"></option>
-            </datalist>
-          </div>
-          <div class="form-group">
-            <label>Interviews Completed</label>
-            <input type="number" id="f-interviews_completed" min="0" value="0" />
-          </div>
-          <div class="form-group">
-            <label>Salary Min</label>
-            <input type="number" id="f-salary_range_min" min="0" placeholder="e.g. 60000" />
-          </div>
-          <div class="form-group">
-            <label>Salary Max</label>
-            <input type="number" id="f-salary_range_max" min="0" placeholder="e.g. 80000" />
-          </div>
-          <div class="form-group">
-            <label>Remote Days / Week</label>
-            <input type="number" id="f-remote_days" min="0" max="5" />
-          </div>
-          <div class="form-group">
-            <label>Location</label>
-            <input type="text" id="f-location" placeholder="City, Country" />
-          </div>
-          <div class="form-group">
-            <label>Tech Stack</label>
-            <input type="text" id="f-tech_stack" placeholder="Python, React, Postgres…" />
-          </div>
-          <div class="form-group">
-            <label>Interest Level (1–5)</label>
-            <input type="number" id="f-interest_level" min="1" max="5" />
-          </div>
-          <div class="form-group">
-            <label>Offer Deadline</label>
-            <input type="date" id="f-offer_deadline" />
-          </div>
-          <div class="form-group">
-            <label>Contact Name</label>
-            <input type="text" id="f-contact_name" />
-          </div>
-          <div class="form-group">
-            <label>Contact Email</label>
-            <input type="email" id="f-contact_email" />
-          </div>
-          <div class="form-group full-width">
-            <label>Job Posting URL</label>
-            <input type="url" id="f-job_url" placeholder="https://…" />
-          </div>
-          <div class="form-group full-width">
-            <label>Notes</label>
-            <textarea id="f-notes" rows="3"></textarea>
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" id="btn-cancel">Cancel</button>
           <button type="submit" class="btn btn-primary">Save</button>
         </div>
       </form>

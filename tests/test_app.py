@@ -47,61 +47,6 @@ def test_streak_two_day_gap_breaks():
     assert compute_streak(history) == 1
 
 
-# ── Interviews ────────────────────────────────────────────────────────────────
-
-def test_list_interviews_empty(client):
-    res = client.get("/api/interviews")
-    assert res.status_code == 200
-    assert res.get_json() == []
-
-
-def test_create_interview(client):
-    payload = {"company_name": "Acme", "status": "Applied"}
-    res = client.post("/api/interviews", json=payload)
-    assert res.status_code == 201
-    data = res.get_json()
-    assert data["company_name"] == "Acme"
-    assert "id" in data
-    assert data["application_date"] == date.today().isoformat()
-
-
-def test_create_then_list_interview(client):
-    client.post("/api/interviews", json={"company_name": "Acme"})
-    res = client.get("/api/interviews")
-    assert len(res.get_json()) == 1
-
-
-def test_update_interview(client):
-    created = client.post("/api/interviews", json={"company_name": "Acme"}).get_json()
-    entry_id = created["id"]
-    res = client.put(f"/api/interviews/{entry_id}", json={"company_name": "Globex", "status": "Offer"})
-    assert res.status_code == 200
-    assert res.get_json()["company_name"] == "Globex"
-
-
-def test_update_interview_not_found(client):
-    res = client.put("/api/interviews/nonexistent", json={"company_name": "X"})
-    assert res.status_code == 404
-
-
-def test_delete_interview(client):
-    created = client.post("/api/interviews", json={"company_name": "Acme"}).get_json()
-    entry_id = created["id"]
-    res = client.delete(f"/api/interviews/{entry_id}")
-    assert res.status_code == 204
-    assert client.get("/api/interviews").get_json() == []
-
-
-def test_delete_interview_not_found(client):
-    res = client.delete("/api/interviews/nonexistent")
-    assert res.status_code == 404
-
-
-def test_create_interview_preserves_supplied_date(client):
-    res = client.post("/api/interviews", json={"company_name": "X", "application_date": "2025-01-15"})
-    assert res.get_json()["application_date"] == "2025-01-15"
-
-
 # ── Behavioral practice ───────────────────────────────────────────────────────
 
 def test_practice_today_returns_three_questions(client):
@@ -529,6 +474,20 @@ def test_refresh_jobs_skips_already_removed(client, monkeypatch):
     assert calls == []
 
 
+
+def test_refresh_jobs_keeps_jobs_already_in_progress(client, monkeypatch):
+    monkeypatch.setattr(app_module.time, "sleep", lambda s: None)
+    for status in ("Applied", "Interviewing", "Offer", "Rejected", "Discarded"):
+        client.post("/api/jobs", json={"company": "Acme", "link": f"https://example.com/{status}", "status": status})
+
+    calls = []
+    monkeypatch.setattr(app_module, "check_job_link_closed", lambda url: calls.append(url) or True)
+
+    res = client.post("/api/jobs/refresh")
+    assert res.get_json() == {"checked": 0, "removed": 0}
+    assert calls == []
+    assert "Removed" not in {j["status"] for j in client.get("/api/jobs").get_json()}
+
 # ── Challenges progress migration ─────────────────────────────────────────────
 
 def test_challenges_progress_migrates_list_format(tmp_data):
@@ -539,22 +498,53 @@ def test_challenges_progress_migrates_list_format(tmp_data):
     assert set(data["completed"].keys()) == {"1", "2", "3"}
 
 
-def test_legacy_interviews_are_imported_once(tmp_data):
-    legacy_file = tmp_data / "interviews.json"
-    legacy_file.write_text(json.dumps([{"id": "1", "company_name": "Acme"}]))
+def test_legacy_jobs_are_imported_once(tmp_data):
+    legacy_file = tmp_data / "jobs.json"
+    legacy_file.write_text(json.dumps({"jobs": [{"id": "1", "company": "Acme"}]}))
 
-    assert app_module.load_data()[0]["company_name"] == "Acme"
+    assert app_module.load_jobs()["jobs"][0]["company"] == "Acme"
 
-    legacy_file.write_text(json.dumps([]))
-    assert app_module.load_data()[0]["company_name"] == "Acme"
+    legacy_file.write_text(json.dumps({"jobs": []}))
+    assert app_module.load_jobs()["jobs"][0]["company"] == "Acme"
 
 
 def test_data_is_saved_in_sqlite(tmp_data):
-    app_module.save_data([{"id": "1", "company_name": "Acme"}])
+    app_module.save_jobs({"jobs": [{"id": "1", "company": "Acme"}]})
 
     with sqlite3.connect(tmp_data / "tracker.db") as connection:
         row = connection.execute(
-            "SELECT value FROM app_state WHERE key = 'interviews'"
+            "SELECT value FROM app_state WHERE key = 'jobs'"
         ).fetchone()
 
-    assert json.loads(row[0]) == [{"id": "1", "company_name": "Acme"}]
+    assert json.loads(row[0]) == {"jobs": [{"id": "1", "company": "Acme"}]}
+
+
+def test_create_job_starts_status_history(client):
+    created = client.post("/api/jobs", json={"company": "Acme", "status": "Interested"}).get_json()
+    assert [h["status"] for h in created["status_history"]] == ["Interested"]
+
+
+def test_update_job_appends_status_change(client):
+    created = client.post("/api/jobs", json={"company": "Acme"}).get_json()
+    entry_id = created["id"]
+    client.put(f"/api/jobs/{entry_id}", json={"company": "Acme", "status": "Applied"})
+    client.put(f"/api/jobs/{entry_id}", json={"company": "Acme", "status": "Applied", "notes": "x"})
+    res = client.put(f"/api/jobs/{entry_id}", json={"company": "Acme", "status": "Interviewing"})
+    assert [h["status"] for h in res.get_json()["status_history"]] == ["Pending", "Applied", "Interviewing"]
+
+
+def test_update_job_ignores_client_sent_history(client):
+    created = client.post("/api/jobs", json={"company": "Acme"}).get_json()
+    res = client.put(f"/api/jobs/{created['id']}", json={
+        "company": "Acme", "status": "Pending", "status_history": [{"status": "Offer", "date": "2026-01-01"}],
+    })
+    assert [h["status"] for h in res.get_json()["status_history"]] == ["Pending"]
+
+
+def test_list_jobs_backfills_missing_history(client):
+    app_module.save_jobs({"jobs": [{"id": "1", "company": "Acme", "status": "Discarded", "date_added": "2026-09-01"}]})
+    job = client.get("/api/jobs").get_json()[0]
+    assert job["status_history"] == [
+        {"status": "Pending", "date": "2026-09-01"},
+        {"status": "Discarded", "date": "2026-09-01"},
+    ]

@@ -12,6 +12,7 @@ from storage import load_state, save_state
 app = Flask(__name__)
 
 CLOSED_JOB_MARKER = "closed-job__flavor--closed"
+REMOVABLE_JOB_STATUSES = ("Pending", "Interested")
 
 
 def check_job_link_closed(url):
@@ -25,7 +26,6 @@ def check_job_link_closed(url):
         return None
     return CLOSED_JOB_MARKER in html
 
-DATA_FILE = os.path.join(os.path.dirname(__file__), "data", "interviews.json")
 DATABASE_FILE = os.path.join(os.path.dirname(__file__), "data", "tracker.db")
 QUESTIONS_FILE = os.path.join(os.path.dirname(__file__), "data", "questions.json")
 PRACTICE_FILE = os.path.join(os.path.dirname(__file__), "data", "practice.json")
@@ -37,14 +37,6 @@ RECRUITER_PRACTICE_FILE = os.path.join(os.path.dirname(__file__), "data", "recru
 COMPANIES_FILE = os.path.join(os.path.dirname(__file__), "data", "companies.json")
 JOBS_FILE = os.path.join(os.path.dirname(__file__), "data", "jobs.json")
 GLASSDOOR_CACHE_FILE = os.path.join(os.path.dirname(__file__), "data", "glassdoor_cache.json")
-
-
-def load_data():
-    return load_state(DATABASE_FILE, "interviews", [], DATA_FILE)
-
-
-def save_data(data):
-    save_state(DATABASE_FILE, "interviews", data)
 
 
 def load_questions():
@@ -181,6 +173,25 @@ def ensure_company_exists(entry):
     save_companies(data)
 
 
+def backfill_status_history(entry):
+    """Best-guess history for jobs saved before history was recorded: every
+    listing starts as Pending, and any later status is dated to when it was added."""
+    added = entry.get("date_added") or date.today().isoformat()
+    history = [{"status": "Pending", "date": added}]
+    status = entry.get("status")
+    if status and status != "Pending":
+        history.append({"status": status, "date": added})
+    return history
+
+
+def record_status(entry, history):
+    """Store history on entry, appending the current status if it changed."""
+    status = entry.get("status") or "Pending"
+    if not history or history[-1]["status"] != status:
+        history = history + [{"status": status, "date": date.today().isoformat()}]
+    entry["status_history"] = history
+
+
 def compute_streak(history):
     today = date.today()
     streak = 0
@@ -203,46 +214,6 @@ def compute_streak(history):
 @app.route("/")
 def index():
     return render_template("index.html")
-
-
-@app.route("/api/interviews", methods=["GET"])
-def list_interviews():
-    return jsonify(load_data())
-
-
-@app.route("/api/interviews", methods=["POST"])
-def create_interview():
-    data = load_data()
-    entry = request.get_json()
-    entry["id"] = str(uuid.uuid4())
-    if not entry.get("application_date"):
-        entry["application_date"] = date.today().isoformat()
-    data.append(entry)
-    save_data(data)
-    return jsonify(entry), 201
-
-
-@app.route("/api/interviews/<entry_id>", methods=["PUT"])
-def update_interview(entry_id):
-    data = load_data()
-    for i, entry in enumerate(data):
-        if entry["id"] == entry_id:
-            updated = request.get_json()
-            updated["id"] = entry_id
-            data[i] = updated
-            save_data(data)
-            return jsonify(updated)
-    return jsonify({"error": "Not found"}), 404
-
-
-@app.route("/api/interviews/<entry_id>", methods=["DELETE"])
-def delete_interview(entry_id):
-    data = load_data()
-    new_data = [e for e in data if e["id"] != entry_id]
-    if len(new_data) == len(data):
-        return jsonify({"error": "Not found"}), 404
-    save_data(new_data)
-    return "", 204
 
 
 @app.route("/api/practice/today", methods=["GET"])
@@ -530,7 +501,10 @@ def delete_company(entry_id):
 
 @app.route("/api/jobs", methods=["GET"])
 def list_jobs():
-    return jsonify(load_jobs()["jobs"])
+    jobs = load_jobs()["jobs"]
+    for entry in jobs:
+        entry.setdefault("status_history", backfill_status_history(entry))
+    return jsonify(jobs)
 
 
 @app.route("/api/jobs", methods=["POST"])
@@ -538,6 +512,7 @@ def create_job():
     data = load_jobs()
     entry = request.get_json()
     entry["id"] = str(uuid.uuid4())
+    record_status(entry, [])
     sync_glassdoor_cache(entry)
     ensure_company_exists(entry)
     data["jobs"].append(entry)
@@ -552,6 +527,7 @@ def update_job(entry_id):
         if entry["id"] == entry_id:
             updated = request.get_json()
             updated["id"] = entry_id
+            record_status(updated, entry.get("status_history") or backfill_status_history(entry))
             sync_glassdoor_cache(updated)
             ensure_company_exists(updated)
             data["jobs"][i] = updated
@@ -583,11 +559,14 @@ def refresh_jobs():
     removed = 0
     for entry in data["jobs"]:
         link = entry.get("link")
-        if not link or entry.get("status") == "Removed":
+        # Once you've acted on a job, a closed listing doesn't change where you stand.
+        if not link or entry.get("status", "Pending") not in REMOVABLE_JOB_STATUSES:
             continue
         checked += 1
         if check_job_link_closed(link):
+            history = entry.get("status_history") or backfill_status_history(entry)
             entry["status"] = "Removed"
+            record_status(entry, history)
             removed += 1
         time.sleep(0.3)
     save_jobs(data)
