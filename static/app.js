@@ -1041,7 +1041,10 @@ function jobsRender() {
         ${j.glassdoor_notes ? `<br/><span style="font-size:12px;color:#64748b;white-space:pre-wrap;">${esc(j.glassdoor_notes)}</span>` : ''}
       </td>
       <td>
-        <span class="badge ${JOB_STATUS_BADGE[j.status] || ''}">${esc(j.status || '—')}</span>
+        <select class="badge status-select ${JOB_STATUS_BADGE[j.status] || ''}" title="Change status"
+                onchange="jobsSetStatus('${j.id}', this.value)">
+          ${Object.keys(JOB_STATUS_BADGE).map(s => `<option value="${s}"${(j.status || 'Pending') === s ? ' selected' : ''}>${s}</option>`).join('')}
+        </select>
         ${j.next_interview_date ? `<br/><span style="font-size:12px;color:#64748b;">📅 ${formatDate(j.next_interview_date)}${j.next_interview_type ? ' · ' + esc(j.next_interview_type) : ''}</span>` : ''}
       </td>
       <td>${formatDate(j.date_added)}</td>
@@ -1153,6 +1156,25 @@ async function jobsHandleSubmit(evt) {
   }
 
   jobsCloseModal();
+  jobsRender();
+}
+
+// Inline status change from the table. PUT replaces the whole record, so send the full job.
+async function jobsSetStatus(id, status) {
+  const j = jobs.find(x => x.id === id);
+  if (!j || j.status === status) return;
+  const res = await fetch(`/api/jobs/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...j, status }),
+  });
+  if (!res.ok) {
+    alert('Could not update status.');
+    jobsRender();
+    return;
+  }
+  const saved = await res.json();
+  jobs = jobs.map(x => x.id === id ? saved : x);
   jobsRender();
 }
 

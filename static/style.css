@@ -136,6 +136,20 @@ tr:hover td { background: #f8fafc; }
   font-weight: 600;
   white-space: nowrap;
 }
+/* Inline status dropdown that looks like a badge */
+select.status-select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  width: auto;
+  cursor: pointer;
+  font-family: inherit;
+  padding-right: 20px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%2364748b'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+}
+select.status-select:focus { outline: 2px solid #93c5fd; outline-offset: 1px; }
 .badge-applied      { background: #dbeafe; color: #1d4ed8; }
 .badge-phone-screen { background: #e0e7ff; color: #4338ca; }
 .badge-technical    { background: #fef3c7; color: #b45309; }

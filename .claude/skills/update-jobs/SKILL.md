@@ -49,7 +49,8 @@ Gathers new job listings for the user's Staff Software Engineer job search (Barc
 
 6. **Add each qualifying new listing** via `POST http://localhost:5001/api/jobs` with: `company`, `title`, `location` (as shown on LinkedIn, e.g. "Barcelona, Catalonia, Spain (Remote)"), `work_mode` (`Remote`/`Hybrid`/`Onsite`, parsed from the location suffix), `level` (`Senior`/`Staff`), `link` (the `/jobs/view/<id>/` URL), `glassdoor_rating`, `glassdoor_notes` (omit both if reusing a cached value — the backend fills them in from the cache), `status: "Pending"`, `date_added` (today, ISO format). Do this via a small Python script using `urllib.request` (see prior conversation for the exact pattern) rather than one curl call per job. Posting a job that *does* include a `glassdoor_rating` writes/refreshes that company's cache entry automatically. The backend also auto-adds the company to the **Companies** tab if it's not already there (nothing to do here — no need to also `POST /api/companies` yourself).
 
-7. **Stop the local Flask server** when done (`pkill -f "python3 app.py"`) and close any browser tabs opened for this task.
+7. **Stop the local Flask server** when done (`pkill -f "app.py"` — the macOS process shows as `Python app.py`, so a `python3 app.py` pattern never matches) and close any browser tabs opened for this task.
+   - **Gotcha:** `PUT /api/jobs/<id>` replaces the whole record, it does not merge. To fix one field, send the full job object.
 
 8. **Report back**: total new listings added, level breakdown (Senior/Staff), and any listings intentionally skipped that the user might expect to see (agency reposts, relocation-required, out-of-scope locations) so they can sanity-check the filtering.
 
