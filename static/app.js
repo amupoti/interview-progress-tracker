@@ -15,7 +15,6 @@ let rqLoaded = false;
 let companies = [];
 let coEditingId = null;
 let coLoaded = false;
-let coContactCount = 0;
 let coSortCol = null;
 let coSortDir = 'asc';
 let glassdoorCache = {};
@@ -23,6 +22,7 @@ let gdLoaded = false;
 
 let jobs = [];
 let jobsEditingId = null;
+let jobsContactCount = 0;
 let jobsLoaded = false;
 let jobsSortCol = null;
 let jobsSortDir = 'asc';
@@ -84,7 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === e.currentTarget) coCloseModal();
   });
   document.getElementById('co-form').addEventListener('submit', coHandleSubmit);
-  document.getElementById('co-btn-add-contact').addEventListener('click', () => coAddContactRow());
   document.getElementById('co-search').addEventListener('input', coRender);
   document.querySelectorAll('#co-table th[data-col]').forEach(th => {
     th.addEventListener('click', () => {
@@ -109,6 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === e.currentTarget) jobsCloseModal();
   });
   document.getElementById('jobs-form').addEventListener('submit', jobsHandleSubmit);
+  document.getElementById('jobs-btn-add-contact').addEventListener('click', () => jobsAddContactRow());
   document.getElementById('jobs-search').addEventListener('input', jobsRender);
   document.getElementById('jobs-work-mode-filter').addEventListener('change', jobsRender);
   document.getElementById('jobs-level-filter').addEventListener('change', jobsRender);
@@ -681,8 +681,7 @@ function coRender() {
 
   const rows = companies.filter(c => {
     if (!search) return true;
-    const contactText = (c.contacts || []).map(p => `${p.name || ''} ${p.title || ''} ${p.email || ''}`).join(' ');
-    const haystack = `${c.company_name || ''} ${c.industry || ''} ${c.location || ''} ${c.benefits || ''} ${contactText}`.toLowerCase();
+    const haystack = `${c.company_name || ''} ${c.industry || ''} ${c.location || ''} ${c.benefits || ''}`.toLowerCase();
     return haystack.includes(search);
   });
 
@@ -705,7 +704,7 @@ function coRender() {
 
   const tbody = document.getElementById('co-tbody');
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr id="co-empty-row"><td colspan="6" class="empty-msg">${companies.length === 0 ? 'No companies yet. Click "+ Add Company" to get started.' : 'No companies match your search.'}</td></tr>`;
+    tbody.innerHTML = `<tr id="co-empty-row"><td colspan="5" class="empty-msg">${companies.length === 0 ? 'No companies yet. Click "+ Add Company" to get started.' : 'No companies match your search.'}</td></tr>`;
     return;
   }
 
@@ -719,7 +718,6 @@ function coRender() {
         ${c.industry ? `<br/><span style="font-size:12px;color:#64748b;">${esc(c.industry)}</span>` : ''}
         ${c.location ? `<br/><span style="font-size:12px;color:#64748b;">📍 ${esc(c.location)}</span>` : ''}
       </td>
-      <td>${coContactsCellHTML(c.contacts)}</td>
       <td style="max-width:240px;white-space:pre-wrap;">${esc(c.benefits || '—')}</td>
       <td>
         ${gd ? `${stars(Math.round(gd.glassdoor_rating))} <span style="font-size:12px;color:#64748b;">${gd.glassdoor_rating}</span>` : '—'}
@@ -737,24 +735,11 @@ function coRender() {
   }).join('');
 }
 
-function coContactsCellHTML(contacts) {
-  if (!contacts || contacts.length === 0) return '—';
-  return `<div class="co-contacts-cell">${contacts.map(p => `
-    <div class="co-contact-chip">
-      <strong>${esc(p.name || '—')}</strong>${p.title ? ' · ' + esc(p.title) : ''}
-      ${p.email ? `<br/>${esc(p.email)}` : ''}
-    </div>
-  `).join('')}</div>`;
-}
-
 function coOpenAdd() {
   coEditingId = null;
   document.getElementById('co-modal-title').textContent = 'Add Company';
   document.getElementById('co-form').reset();
   document.getElementById('co-f-id').value = '';
-  document.getElementById('co-contacts-list').innerHTML = '';
-  coContactCount = 0;
-  coAddContactRow();
   clearInvalid();
   document.getElementById('co-modal-overlay').classList.remove('hidden');
 }
@@ -773,11 +758,6 @@ function coOpenEdit(id) {
   document.getElementById('co-f-benefits').value = c.benefits || '';
   document.getElementById('co-f-notes').value = c.notes || '';
 
-  document.getElementById('co-contacts-list').innerHTML = '';
-  coContactCount = 0;
-  const contacts = c.contacts && c.contacts.length ? c.contacts : [{}];
-  contacts.forEach(p => coAddContactRow(p));
-
   clearInvalid();
   document.getElementById('co-modal-overlay').classList.remove('hidden');
 }
@@ -785,35 +765,6 @@ function coOpenEdit(id) {
 function coCloseModal() {
   document.getElementById('co-modal-overlay').classList.add('hidden');
   coEditingId = null;
-}
-
-function coAddContactRow(contact = {}) {
-  const rowId = coContactCount++;
-  const row = document.createElement('div');
-  row.className = 'co-contact-row';
-  row.dataset.rowId = rowId;
-  row.innerHTML = `
-    <input type="text" class="co-contact-name" placeholder="Name" value="${esc(contact.name || '')}" />
-    <input type="text" class="co-contact-title" placeholder="Title / Role" value="${esc(contact.title || '')}" />
-    <input type="email" class="co-contact-email" placeholder="Email" value="${esc(contact.email || '')}" />
-    <button type="button" class="btn-icon danger" title="Remove contact" onclick="coRemoveContactRow(${rowId})">🗑</button>
-  `;
-  document.getElementById('co-contacts-list').appendChild(row);
-}
-
-function coRemoveContactRow(rowId) {
-  const row = document.querySelector(`.co-contact-row[data-row-id="${rowId}"]`);
-  if (row) row.remove();
-}
-
-function coCollectContacts() {
-  return [...document.querySelectorAll('.co-contact-row')]
-    .map(row => ({
-      name:  row.querySelector('.co-contact-name').value.trim(),
-      title: row.querySelector('.co-contact-title').value.trim(),
-      email: row.querySelector('.co-contact-email').value.trim(),
-    }))
-    .filter(p => p.name || p.title || p.email);
 }
 
 async function coHandleSubmit(evt) {
@@ -834,7 +785,6 @@ async function coHandleSubmit(evt) {
     interest_level: toNum(document.getElementById('co-f-interest_level').value),
     benefits:       document.getElementById('co-f-benefits').value.trim(),
     notes:          document.getElementById('co-f-notes').value.trim(),
-    contacts:       coCollectContacts(),
   };
 
   if (coEditingId) {
@@ -931,12 +881,8 @@ async function jobsReload() {
   }
 }
 
-function jobContacts(companyName) {
-  if (!companyName) return [];
-  const needle = companyName.trim().toLowerCase();
-  const co = companies.find(c => (c.company_name || '').trim().toLowerCase() === needle);
-  if (!co || !co.contacts) return [];
-  return co.contacts.filter(p => p.name && p.name.trim());
+function jobContacts(j) {
+  return (j.contacts || []).filter(p => p.name && p.name.trim());
 }
 
 function jobsColValue(j, col) {
@@ -973,7 +919,8 @@ function jobsRender() {
     if (workModeFilter && j.work_mode !== workModeFilter) return false;
     if (levelFilter && j.level !== levelFilter) return false;
     if (!search) return true;
-    const haystack = `${j.company || ''} ${j.title || ''} ${j.location || ''} ${j.level || ''} ${j.notes || ''} ${j.glassdoor_notes || ''}`.toLowerCase();
+    const contactText = jobContacts(j).map(p => p.name).join(' ');
+    const haystack = `${j.company || ''} ${j.title || ''} ${j.location || ''} ${j.level || ''} ${j.notes || ''} ${j.glassdoor_notes || ''} ${contactText}`.toLowerCase();
     return haystack.includes(search);
   });
 
@@ -992,8 +939,8 @@ function jobsRender() {
     rows.sort((a, b) => {
       const byStatus = jobStatusRank(a) - jobStatusRank(b);
       if (byStatus) return byStatus;
-      const aHas = jobContacts(a.company).length > 0 ? 1 : 0;
-      const bHas = jobContacts(b.company).length > 0 ? 1 : 0;
+      const aHas = jobContacts(a).length > 0 ? 1 : 0;
+      const bHas = jobContacts(b).length > 0 ? 1 : 0;
       if (aHas !== bHas) return bHas - aHas;
       const aRating = a.glassdoor_rating != null && a.glassdoor_rating !== '' ? Number(a.glassdoor_rating) : -1;
       const bRating = b.glassdoor_rating != null && b.glassdoor_rating !== '' ? Number(b.glassdoor_rating) : -1;
@@ -1022,7 +969,7 @@ function jobsRender() {
   }
 
   tbody.innerHTML = rows.map(j => {
-    const contacts = jobContacts(j.company);
+    const contacts = jobContacts(j);
     const title = j.title ? esc(j.title) : '';
     return `
     <tr>
@@ -1066,6 +1013,7 @@ function jobsOpenAdd() {
   document.getElementById('jobs-f-id').value = '';
   document.getElementById('jobs-f-status').value = 'Pending';
   document.getElementById('jobs-f-date_added').value = todayISO();
+  jobsSetContactRows([]);
   clearInvalid();
   document.getElementById('jobs-modal-overlay').classList.remove('hidden');
 }
@@ -1089,6 +1037,7 @@ function jobsOpenEdit(id) {
   document.getElementById('jobs-f-next_interview_type').value = j.next_interview_type || '';
   document.getElementById('jobs-f-glassdoor_notes').value = j.glassdoor_notes || '';
   document.getElementById('jobs-f-notes').value = j.notes || '';
+  jobsSetContactRows(j.contacts);
 
   clearInvalid();
   document.getElementById('jobs-modal-overlay').classList.remove('hidden');
@@ -1097,6 +1046,41 @@ function jobsOpenEdit(id) {
 function jobsCloseModal() {
   document.getElementById('jobs-modal-overlay').classList.add('hidden');
   jobsEditingId = null;
+}
+
+function jobsSetContactRows(contacts) {
+  document.getElementById('jobs-contacts-list').innerHTML = '';
+  jobsContactCount = 0;
+  (contacts && contacts.length ? contacts : [{}]).forEach(p => jobsAddContactRow(p));
+}
+
+function jobsAddContactRow(contact = {}) {
+  const rowId = jobsContactCount++;
+  const row = document.createElement('div');
+  row.className = 'contact-row';
+  row.dataset.rowId = rowId;
+  row.innerHTML = `
+    <input type="text" class="contact-name" placeholder="Name" value="${esc(contact.name || '')}" />
+    <input type="text" class="contact-title" placeholder="Title / Role" value="${esc(contact.title || '')}" />
+    <input type="email" class="contact-email" placeholder="Email" value="${esc(contact.email || '')}" />
+    <button type="button" class="btn-icon danger" title="Remove contact" onclick="jobsRemoveContactRow(${rowId})">🗑</button>
+  `;
+  document.getElementById('jobs-contacts-list').appendChild(row);
+}
+
+function jobsRemoveContactRow(rowId) {
+  const row = document.querySelector(`.contact-row[data-row-id="${rowId}"]`);
+  if (row) row.remove();
+}
+
+function jobsCollectContacts() {
+  return [...document.querySelectorAll('.contact-row')]
+    .map(row => ({
+      name:  row.querySelector('.contact-name').value.trim(),
+      title: row.querySelector('.contact-title').value.trim(),
+      email: row.querySelector('.contact-email').value.trim(),
+    }))
+    .filter(p => p.name || p.title || p.email);
 }
 
 async function jobsHandleSubmit(evt) {
@@ -1135,6 +1119,7 @@ async function jobsHandleSubmit(evt) {
     next_interview_type: document.getElementById('jobs-f-next_interview_type').value.trim(),
     glassdoor_notes:  document.getElementById('jobs-f-glassdoor_notes').value.trim(),
     notes:            document.getElementById('jobs-f-notes').value.trim(),
+    contacts:         jobsCollectContacts(),
   };
 
   if (jobsEditingId) {

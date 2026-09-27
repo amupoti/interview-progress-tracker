@@ -284,15 +284,15 @@ select.status-select:focus { outline: 2px solid #93c5fd; outline-offset: 1px; }
   border-top: 1px solid var(--border);
 }
 
-/* ── Contact rows (Companies) ── */
-#co-contacts-list { display: flex; flex-direction: column; gap: 8px; }
-.co-contact-row {
+/* ── Contact rows (Jobs) ── */
+#jobs-contacts-list { display: flex; flex-direction: column; gap: 8px; }
+.contact-row {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr auto;
   gap: 8px;
   align-items: center;
 }
-.co-contact-row input {
+.contact-row input {
   padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -301,10 +301,7 @@ select.status-select:focus { outline: 2px solid #93c5fd; outline-offset: 1px; }
   outline: none;
   background: var(--surface);
 }
-.co-contact-row input:focus { border-color: var(--primary); }
-.co-contacts-cell { display: flex; flex-direction: column; gap: 2px; }
-.co-contact-chip { font-size: 12px; color: var(--text-muted); }
-.co-contact-chip strong { color: var(--text); font-weight: 500; }
+.contact-row input:focus { border-color: var(--primary); }
 
 /* ── Utility ── */
 .hidden { display: none !important; }

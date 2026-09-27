@@ -238,14 +238,12 @@ def test_create_company(client):
         "company_name": "Acme",
         "url": "https://acme.example.com",
         "benefits": "Unlimited PTO",
-        "contacts": [{"name": "Jane Doe", "title": "Recruiter", "email": "jane@acme.example.com"}],
     }
     res = client.post("/api/companies", json=payload)
     assert res.status_code == 201
     data = res.get_json()
     assert data["company_name"] == "Acme"
     assert "id" in data
-    assert data["contacts"][0]["name"] == "Jane Doe"
 
 
 def test_create_then_list_company(client):
@@ -398,15 +396,14 @@ def test_create_job_adds_new_company_to_companies_list(client):
     assert len(companies) == 1
     assert companies[0]["company_name"] == "Acme"
     assert companies[0]["location"] == "Remote"
-    assert companies[0]["contacts"] == []
 
 
 def test_create_job_does_not_duplicate_existing_company(client):
-    client.post("/api/companies", json={"company_name": "Acme", "contacts": [{"name": "Jo"}]})
+    client.post("/api/companies", json={"company_name": "Acme", "notes": "Keep me"})
     client.post("/api/jobs", json={"company": "acme", "title": "Staff SWE"})
     companies = client.get("/api/companies").get_json()
     assert len(companies) == 1
-    assert companies[0]["contacts"] == [{"name": "Jo"}]
+    assert companies[0]["notes"] == "Keep me"
 
 
 def test_update_job_adds_new_company_if_changed(client):
@@ -548,3 +545,32 @@ def test_list_jobs_backfills_missing_history(client):
         {"status": "Pending", "date": "2026-09-01"},
         {"status": "Discarded", "date": "2026-09-01"},
     ]
+
+
+def test_update_job_keeps_contacts(client):
+    contacts = [{"name": "Jane Doe", "title": "Recruiter", "email": "jane@acme.example.com"}]
+    created = client.post("/api/jobs", json={"company": "Acme", "contacts": contacts}).get_json()
+    assert created["contacts"] == contacts
+    res = client.put(f"/api/jobs/{created['id']}", json={**created, "status": "Applied"})
+    assert res.get_json()["contacts"] == contacts
+
+
+def test_list_jobs_moves_company_contacts_onto_jobs(client):
+    app_module.save_companies({"companies": [
+        {"id": "c1", "company_name": "Acme", "contacts": [{"name": "Jo", "title": "", "email": ""}, {"name": ""}]},
+        {"id": "c2", "company_name": "Globex", "contacts": []},
+    ]})
+    app_module.save_jobs({"jobs": [
+        {"id": "1", "company": "Acme"},
+        {"id": "2", "company": " acme "},
+        {"id": "3", "company": "Acme", "contacts": [{"name": "Own"}]},
+        {"id": "4", "company": "Globex"},
+    ]})
+    for _ in range(2):
+        jobs = {j["id"]: j for j in client.get("/api/jobs").get_json()}
+        assert jobs["1"]["contacts"] == [{"name": "Jo", "title": "", "email": ""}]
+        assert jobs["2"]["contacts"] == [{"name": "Jo", "title": "", "email": ""}]
+        assert jobs["3"]["contacts"] == [{"name": "Own"}]
+        assert "contacts" not in jobs["4"]
+    companies = client.get("/api/companies").get_json()
+    assert all("contacts" not in c for c in companies)

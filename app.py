@@ -168,9 +168,29 @@ def ensure_company_exists(entry):
         "interest_level": None,
         "benefits": "",
         "notes": "",
-        "contacts": [],
     })
     save_companies(data)
+
+
+def migrate_company_contacts():
+    """Contacts used to live on companies; they now live on jobs. Copy any
+    company contacts onto every job at that company (unless the job already
+    has its own), then drop them from the company so this only runs once."""
+    companies = load_companies()
+    if not any("contacts" in c for c in companies["companies"]):
+        return
+    by_company = {}
+    for c in companies["companies"]:
+        named = [p for p in c.pop("contacts", None) or [] if (p.get("name") or "").strip()]
+        if named:
+            by_company[(c.get("company_name") or "").strip().lower()] = named
+    jobs = load_jobs()
+    for entry in jobs["jobs"]:
+        contacts = by_company.get((entry.get("company") or "").strip().lower())
+        if contacts and not entry.get("contacts"):
+            entry["contacts"] = [dict(p) for p in contacts]
+    save_jobs(jobs)
+    save_companies(companies)
 
 
 def backfill_status_history(entry):
@@ -501,6 +521,7 @@ def delete_company(entry_id):
 
 @app.route("/api/jobs", methods=["GET"])
 def list_jobs():
+    migrate_company_contacts()
     jobs = load_jobs()["jobs"]
     for entry in jobs:
         entry.setdefault("status_history", backfill_status_history(entry))
