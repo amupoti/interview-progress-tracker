@@ -162,7 +162,9 @@ select.status-select:focus { outline: 2px solid #93c5fd; outline-offset: 1px; }
 .badge-interested   { background: #e0f2fe; color: #0369a1; }
 .badge-interviewing { background: #fef3c7; color: #b45309; }
 .badge-discarded    { background: #fee2e2; color: #991b1b; }
-.badge-removed      { background: #fee2e2; color: #991b1b; }
+.badge-closed       { background: #fee2e2; color: #991b1b; }
+.badge-excluded     { background: #fee2e2; color: #991b1b; }
+.row-excluded td    { opacity: 0.6; }
 .badge-remote       { background: #d1fae5; color: #065f46; }
 .badge-hybrid       { background: #fef3c7; color: #b45309; }
 .badge-onsite       { background: #ffedd5; color: #c2410c; }

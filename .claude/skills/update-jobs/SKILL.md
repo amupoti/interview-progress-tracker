@@ -11,17 +11,20 @@ Gathers new job listings for the user's Staff Software Engineer job search (Barc
 
 - **Levels:** Senior or Staff only (or clear equivalents like "Engineering Lead", "Tech Lead", "Staff Engineer"). Explicitly **exclude Principal-level** roles.
 - **Location:** Remote roles anywhere in Spain/EMEA/EU/EEA, OR Hybrid/Onsite roles specifically in Barcelona. Hybrid/onsite roles outside Barcelona (Madrid, Zaragoza, etc.) are out of scope.
-- **Exclude:** relocation-required postings (e.g. "Bangkok based, relocation provided"), freelance/temporary/hourly-contract postings, staffing-agency/recruiter reposts that obscure the real employer (names like "X Consultants", "X Staffing", "X People Ltd", "Jobgether", "Hire Feed"), generalist IT consultancies/body-shops even when posting under their own name (NTT DATA, GFT Technologies, Indra Group, ALTEN, Robert Walters, K2 Partnering Solutions, Lawrence Harvey, etc. — the actual work is typically client placement, not a genuine product-company IC role), and roles clearly outside core software engineering (e.g. embedded firmware) unless the domain overlaps the user's background (distributed systems/backend).
+- **Exclude:** any listing from a company flagged `excluded` in the Companies tab (skip it entirely — don't add it; the backend would auto-discard it anyway), relocation-required postings (e.g. "Bangkok based, relocation provided"), freelance/temporary/hourly-contract postings, staffing-agency/recruiter reposts that obscure the real employer (names like "X Consultants", "X Staffing", "X People Ltd", "Jobgether", "Hire Feed"), generalist IT consultancies/body-shops even when posting under their own name (NTT DATA, GFT Technologies, Indra Group, ALTEN, Robert Walters, K2 Partnering Solutions, Lawrence Harvey, etc. — the actual work is typically client placement, not a genuine product-company IC role), and roles clearly outside core software engineering (e.g. embedded firmware) unless the domain overlaps the user's background (distributed systems/backend).
 
 ## Steps
 
 1. **Load browser tools** if not already loaded: `ToolSearch("select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__javascript_tool,mcp__claude-in-chrome__tabs_create_mcp,mcp__claude-in-chrome__tabs_close_mcp")`.
 
-2. **Get current jobs for dedup.** Start the local app if not running (`cd` into the repo, `(python3 app.py > /tmp/tracker_app.log 2>&1 &)`, port 5001), then `GET http://localhost:5001/api/jobs`. Build a set of already-tracked LinkedIn job ids by parsing the numeric id out of each `link` (`/jobs/view/<id>/`) — dedupe on this id, not company name, since companies can have multiple distinct tracked roles.
+2. **Get current jobs for dedup.** Start the local app if not running (`cd` into the repo, `(python3 app.py > /tmp/tracker_app.log 2>&1 &)`, port 5001), then `GET http://localhost:5001/api/jobs`. Build a set of already-tracked LinkedIn job ids by parsing the numeric id out of each `link` (`/jobs/view/<id>/`) — dedupe on this id, not company name, since companies can have multiple distinct tracked roles. Also `GET http://localhost:5001/api/companies` and collect the names of companies with `excluded: true` (compare lowercased/trimmed) — the user has said they don't want to work there.
 
 3. **Gather candidates from two sources, every pass** (neither alone is thorough — confirmed by experience: keyword search misses title variants like "Engineering Lead"; the personalized feed likely under-surfaces Senior roles since LinkedIn's algorithm weighs the user's current Staff-level title):
    - Browse the user's personalized feed: navigate to `https://www.linkedin.com/jobs/collections/recommended/` (or the "Jobs" home) in the user's logged-in session.
-   - Also run an explicit keyword search for Senior specifically: `https://www.linkedin.com/jobs/search/?keywords=%22Senior%20Software%20Engineer%22&location=Spain&sortBy=DD` (and Staff if useful: `%22Staff%20Software%20Engineer%22`).
+   - Also run **all three** explicit exact-phrase keyword searches (`https://www.linkedin.com/jobs/search/?keywords=<phrase>&location=Spain&sortBy=DD`), every pass:
+     - `%22Senior%20Software%20Engineer%22`
+     - `%22Staff%20Software%20Engineer%22`
+     - `%22Staff%20Engineer%22` — needed because quoted phrases only match exact wording: a job titled plain "Staff Engineer" (e.g. dLocal, Barcelona) never shows up under "Staff Software Engineer" (confirmed).
    - For each source, page through **multiple pages** (don't stop at page 1 — thin results on page 1 undercount badly). Click through page numbers at the bottom of the results list.
    - On each page, the results list is virtualized — scroll down within the list (`computer` scroll action at the list's coordinates, a couple of times with short waits) to force all cards to render before extracting.
    - Extract structured data with `javascript_tool`:
@@ -49,10 +52,12 @@ Gathers new job listings for the user's Staff Software Engineer job search (Barc
 
 6. **Add each qualifying new listing** via `POST http://localhost:5001/api/jobs` with: `company`, `title`, `location` (as shown on LinkedIn, e.g. "Barcelona, Catalonia, Spain (Remote)"), `work_mode` (`Remote`/`Hybrid`/`Onsite`, parsed from the location suffix), `level` (`Senior`/`Staff`), `link` (the `/jobs/view/<id>/` URL), `glassdoor_rating`, `glassdoor_notes` (omit both if reusing a cached value — the backend fills them in from the cache), `status: "Pending"`, `date_added` (today, ISO format). Do this via a small Python script using `urllib.request` (see prior conversation for the exact pattern) rather than one curl call per job. Posting a job that *does* include a `glassdoor_rating` writes/refreshes that company's cache entry automatically. The backend also auto-adds the company to the **Companies** tab if it's not already there (nothing to do here — no need to also `POST /api/companies` yourself).
 
-7. **Stop the local Flask server** when done (`pkill -f "app.py"` — the macOS process shows as `Python app.py`, so a `python3 app.py` pattern never matches) and close any browser tabs opened for this task.
+7. **Close out listings that stopped accepting applications.** `POST http://localhost:5001/api/jobs/refresh` (takes a few minutes; it fetches every link with a 0.3s delay, so run it with a long timeout or in the background). It moves `Pending`/`Interested` jobs whose LinkedIn page says "No longer accepting applications" / "Not currently accepting applications" to `Closed`, and leaves jobs you've acted on (Applied, Interviewing, Offer, Rejected, Discarded) alone. It returns `{"checked": N, "closed": M}`.
+
+8. **Stop the local Flask server** when done (`pkill -f "app.py"` — the macOS process shows as `Python app.py`, so a `python3 app.py` pattern never matches) and close any browser tabs opened for this task.
    - **Gotcha:** `PUT /api/jobs/<id>` replaces the whole record, it does not merge. To fix one field, send the full job object.
 
-8. **Report back**: total new listings added, level breakdown (Senior/Staff), and any listings intentionally skipped that the user might expect to see (agency reposts, relocation-required, out-of-scope locations) so they can sanity-check the filtering.
+9. **Report back**: total new listings added, how many listings were closed in step 7, level breakdown (Senior/Staff), and any listings intentionally skipped that the user might expect to see (excluded companies, agency reposts, relocation-required, out-of-scope locations) so they can sanity-check the filtering.
 
 ## Why this can't be automated
 

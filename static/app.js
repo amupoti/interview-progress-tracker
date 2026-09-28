@@ -35,7 +35,7 @@ const JOB_STATUS_BADGE = {
   'Offer':        'badge-offer',
   'Rejected':     'badge-rejected',
   'Discarded':    'badge-discarded',
-  'Removed':      'badge-removed',
+  'Closed':      'badge-closed',
 };
 
 const WORK_MODE_BADGE = {
@@ -711,9 +711,10 @@ function coRender() {
   tbody.innerHTML = rows.map(c => {
     const gd = coGlassdoor(c.company_name);
     return `
-    <tr>
+    <tr${c.excluded ? ' class="row-excluded"' : ''}>
       <td>
         <strong>${esc(c.company_name)}</strong>
+        ${c.excluded ? ' <span class="badge badge-excluded">🚫 Excluded</span>' : ''}
         ${c.url ? `<br/><a href="${esc(c.url)}" target="_blank" style="font-size:12px;color:#4f46e5;">↗ site</a>` : ''}
         ${c.industry ? `<br/><span style="font-size:12px;color:#64748b;">${esc(c.industry)}</span>` : ''}
         ${c.location ? `<br/><span style="font-size:12px;color:#64748b;">📍 ${esc(c.location)}</span>` : ''}
@@ -727,6 +728,9 @@ function coRender() {
       <td>
         <div class="actions">
           <button class="btn-icon" title="Edit" onclick="coOpenEdit('${c.id}')">✏️</button>
+          ${c.excluded
+            ? `<button class="btn-icon" title="Stop excluding this company" onclick="coToggleExcluded('${c.id}')">↩️</button>`
+            : `<button class="btn-icon danger" title="Exclude company — discard its jobs" onclick="coToggleExcluded('${c.id}')">🚫</button>`}
           <button class="btn-icon danger" title="Delete" onclick="coConfirmDelete('${c.id}')">🗑</button>
         </div>
       </td>
@@ -786,6 +790,8 @@ async function coHandleSubmit(evt) {
     benefits:       document.getElementById('co-f-benefits').value.trim(),
     notes:          document.getElementById('co-f-notes').value.trim(),
   };
+  const existing = companies.find(x => x.id === coEditingId);
+  if (existing && existing.excluded) entry.excluded = true;
 
   if (coEditingId) {
     const res = await fetch(`/api/companies/${coEditingId}`, {
@@ -816,6 +822,32 @@ async function coConfirmDelete(id) {
   await fetch(`/api/companies/${id}`, { method: 'DELETE' });
   companies = companies.filter(x => x.id !== id);
   coRender();
+}
+
+function coToggleExcluded(id) {
+  const c = companies.find(x => x.id === id);
+  if (c) setCompanyExcluded(c.company_name, !c.excluded);
+}
+
+async function setCompanyExcluded(name, excluded) {
+  const msg = excluded
+    ? `Exclude "${name}"? Its Pending/Interested jobs will be marked Discarded, and future listings from it will be discarded automatically.`
+    : `Stop excluding "${name}"? Already-discarded jobs stay discarded.`;
+  if (!confirm(msg)) return;
+  const res = await fetch('/api/companies/exclude', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ company: name, excluded }),
+  });
+  if (!res.ok) {
+    alert('Could not update company.');
+    return;
+  }
+  const [coRes, jobsRes] = await Promise.all([fetch('/api/companies'), fetch('/api/jobs')]);
+  companies = await coRes.json();
+  jobs = await jobsRes.json();
+  coRender();
+  jobsRender();
 }
 
 /* ────────────────────────────────────────────
@@ -873,7 +905,7 @@ async function jobsReload() {
     const res = await fetch('/api/jobs/refresh', { method: 'POST' });
     const result = await res.json();
     await jobsFetchJobs();
-    statusEl.textContent = `Checked ${result.checked}, marked ${result.removed} as removed.`;
+    statusEl.textContent = `Checked ${result.checked}, marked ${result.closed} as closed.`;
   } catch (err) {
     statusEl.textContent = 'Reload failed — check the server log.';
   } finally {
@@ -898,7 +930,7 @@ function jobsColValue(j, col) {
 }
 
 // Furthest along the process first, then closed-out jobs.
-const JOB_STATUS_ORDER = ['Offer', 'Interviewing', 'Applied', 'Interested', 'Pending', 'Rejected', 'Discarded', 'Removed'];
+const JOB_STATUS_ORDER = ['Offer', 'Interviewing', 'Applied', 'Interested', 'Pending', 'Rejected', 'Discarded', 'Closed'];
 function jobStatusRank(j) {
   const i = JOB_STATUS_ORDER.indexOf(j.status || 'Pending');
   return i === -1 ? JOB_STATUS_ORDER.length : i;
@@ -998,6 +1030,7 @@ function jobsRender() {
       <td>
         <div class="actions">
           <button class="btn-icon" title="Edit" onclick="jobsOpenEdit('${j.id}')">✏️</button>
+          <button class="btn-icon danger" title="Exclude ${esc(j.company)} — discard all its jobs" onclick="jobsExcludeCompany('${j.id}')">🚫</button>
           <button class="btn-icon danger" title="Delete" onclick="jobsConfirmDelete('${j.id}')">🗑</button>
         </div>
       </td>
@@ -1145,6 +1178,11 @@ async function jobsHandleSubmit(evt) {
 }
 
 // Inline status change from the table. PUT replaces the whole record, so send the full job.
+function jobsExcludeCompany(id) {
+  const j = jobs.find(x => x.id === id);
+  if (j && j.company) setCompanyExcluded(j.company, true);
+}
+
 async function jobsSetStatus(id, status) {
   const j = jobs.find(x => x.id === id);
   if (!j || j.status === status) return;
@@ -1178,7 +1216,7 @@ async function jobsConfirmDelete(id) {
 // Column each status is drawn in; statuses sharing a column are alternative outcomes.
 const PIPELINE_STAGE = {
   'Pending': 0, 'Interested': 1, 'Applied': 2, 'Interviewing': 3,
-  'Offer': 4, 'Rejected': 5, 'Discarded': 5, 'Removed': 6,
+  'Offer': 4, 'Rejected': 5, 'Discarded': 5, 'Closed': 6,
 };
 const PIPELINE_COLOR = {
   'Pending':      '#94a3b8',
@@ -1188,7 +1226,7 @@ const PIPELINE_COLOR = {
   'Offer':        '#008300',
   'Rejected':     '#e34948',
   'Discarded':    '#475569',
-  'Removed':      '#a8a29e',
+  'Closed':      '#a8a29e',
 };
 
 let pipelineJobs = [];
@@ -1261,33 +1299,57 @@ function pipelineDraw(chart, reached, current, links) {
   const nodeWidth = 12;
   const nodeGap = 28;
 
-  // Stack each column's nodes top to bottom; one scale for all columns so
-  // heights are comparable. A node's height counts every job that reached it,
-  // so jobs that stopped there show as height beyond the outgoing flows.
-  const byColumn = columns.map(c => statuses.filter(s => PIPELINE_STAGE[s] === c));
-  const scale = Math.min(...byColumn.map(names =>
-    (height - 2 * pad.y - nodeGap * (names.length - 1)) / names.reduce((t, n) => t + reached[n], 0)));
+  // Links spanning several columns get a pass-through lane in every column in
+  // between, so their ribbons run through reserved space instead of over the
+  // nodes there. Lanes sit below a column's nodes, nearest targets first and,
+  // for a shared target, nearest sources first (they arrive from above).
+  const colOf = s => columns.indexOf(PIPELINE_STAGE[s]);
+  const items = columns.map(c => statuses.filter(s => PIPELINE_STAGE[s] === c)
+    .map(name => ({ name, value: reached[name] })));
+  const flows = links.map(l => ({ ...l, lanes: [] }));
+  [...flows].sort((a, b) => colOf(a.target) - colOf(b.target) || colOf(b.source) - colOf(a.source)).forEach(f => {
+    for (let ci = colOf(f.source) + 1; ci < colOf(f.target); ci++) {
+      const lane = { value: f.value };
+      items[ci].push(lane);
+      f.lanes.push(lane);
+    }
+  });
+
+  // Stack each column top to bottom; one scale for all columns so heights are
+  // comparable. A node's height counts every job that reached it, so jobs that
+  // stopped there show as height beyond the outgoing flows. Adjacent lanes
+  // touch, like ribbons leaving the same node.
+  const gapBefore = (list, i) => i === 0 || (!list[i].name && !list[i - 1].name) ? 0 : nodeGap;
+  const gapsOf = list => list.reduce((t, _, i) => t + gapBefore(list, i), 0);
+  const scale = Math.min(...items.map(list =>
+    (height - 2 * pad.y - gapsOf(list)) / list.reduce((t, it) => t + it.value, 0)));
   const colStep = columns.length > 1 ? (width - 2 * pad.x - nodeWidth) / (columns.length - 1) : 0;
   const nodes = {};
-  byColumn.forEach((names, ci) => {
-    const colHeight = names.reduce((t, n) => t + reached[n] * scale, 0) + nodeGap * (names.length - 1);
+  items.forEach((list, ci) => {
+    const colHeight = list.reduce((t, it) => t + it.value * scale, 0) + gapsOf(list);
     let y = (height - colHeight) / 2;
-    names.forEach(name => {
-      const h = reached[name] * scale;
-      nodes[name] = { name, col: ci, x0: pad.x + ci * colStep, y0: y, h, outY: y, inY: y };
-      y += h + nodeGap;
+    list.forEach((it, i) => {
+      y += gapBefore(list, i);
+      it.x0 = pad.x + ci * colStep;
+      it.y0 = y;
+      it.h = it.value * scale;
+      if (it.name) nodes[it.name] = { ...it, col: ci, outY: y, inY: y };
+      y += it.h;
     });
   });
 
   // Each flow leaves from the top of its source's remaining space and enters
-  // at the top of its target's, ordered so ribbons don't cross needlessly.
-  const flows = links.map(l => ({ ...l, w: l.value * scale }));
-  const midY = n => nodes[n].y0 + nodes[n].h / 2;
-  [...flows].sort((a, b) => midY(a.target) - midY(b.target) || nodes[a.target].col - nodes[b.target].col).forEach(f => {
+  // at the top of its target's, ordered by where the ribbon heads next (or
+  // came from) so ribbons don't cross needlessly.
+  flows.forEach(f => { f.w = f.value * scale; });
+  const midY = it => it.y0 + it.h / 2;
+  const nextY = f => midY(f.lanes.length ? f.lanes[0] : nodes[f.target]);
+  const prevY = f => midY(f.lanes.length ? f.lanes[f.lanes.length - 1] : nodes[f.source]);
+  [...flows].sort((a, b) => nextY(a) - nextY(b)).forEach(f => {
     f.sy = nodes[f.source].outY + f.w / 2;
     nodes[f.source].outY += f.w;
   });
-  [...flows].sort((a, b) => midY(a.source) - midY(b.source) || nodes[b.source].col - nodes[a.source].col).forEach(f => {
+  [...flows].sort((a, b) => prevY(a) - prevY(b)).forEach(f => {
     f.ty = nodes[f.target].inY + f.w / 2;
     nodes[f.target].inY += f.w;
   });
@@ -1295,11 +1357,19 @@ function pipelineDraw(chart, reached, current, links) {
   const jobsLabel = n => `${n} job${n === 1 ? '' : 's'}`;
   const lastCol = columns.length - 1;
   const flowSvg = flows.map((f, i) => {
-    const sx = nodes[f.source].x0 + nodeWidth;
-    const tx = nodes[f.target].x0;
-    const mx = (sx + tx) / 2;
+    // Curve between columns, run straight across each lane.
+    const points = [
+      [nodes[f.source].x0 + nodeWidth, f.sy],
+      ...f.lanes.flatMap(l => [[l.x0, midY(l)], [l.x0 + nodeWidth, midY(l)]]),
+      [nodes[f.target].x0, f.ty],
+    ];
+    const d = points.slice(1).map(([x, y], k) => {
+      const [px, py] = points[k];
+      const mx = (px + x) / 2;
+      return k % 2 ? `L${x},${y}` : `C${mx},${py} ${mx},${y} ${x},${y}`;
+    }).join('');
     return `<path class="pipeline-link" data-flow="${i}" fill="none" stroke="${PIPELINE_COLOR[f.target]}"
-      stroke-width="${Math.max(2, f.w)}" d="M${sx},${f.sy}C${mx},${f.sy} ${mx},${f.ty} ${tx},${f.ty}"/>`;
+      stroke-width="${Math.max(2, f.w)}" d="M${points[0][0]},${points[0][1]}${d}"/>`;
   }).join('');
   const nodeSvg = Object.values(nodes).map(n => {
     const right = n.col === lastCol && lastCol > 0;

@@ -57,12 +57,12 @@ The Jobs tab tracks each listing from the moment you find it until it ends in an
 
 - Filter by work mode (Remote / Hybrid / Onsite), by level (Senior / Staff / Other), or free-text search across company, title, location, level, and notes.
 - Click any column header to sort by it.
-- With no column sort active, rows default-sort **by how far along the process they are**: `Offer` → `Interviewing` → `Applied` → `Interested` → `Pending`, then closed-out `Rejected` / `Discarded` / `Removed` at the bottom. Sorting by the Status column uses the same order.
+- With no column sort active, rows default-sort **by how far along the process they are**: `Offer` → `Interviewing` → `Applied` → `Interested` → `Pending`, then closed-out `Rejected` / `Discarded` / `Closed` at the bottom. Sorting by the Status column uses the same order.
 - Within a status, **referral-aware ranking** applies: any job at a company that has a contact listed in the **Companies** tab floats to the top, with Glassdoor rating as the tiebreaker.
 
 New listings land in the `Pending` status so you can review them in bulk and manually promote the ones worth pursuing to `Interested`.
 
-Every status change is recorded with its date in the job's `status_history`, which is what the **Pipeline** tab charts. The **🔄 Reload Offers** button marks listings whose LinkedIn posting has closed as `Removed`, but only while they're still `Pending` or `Interested` — once you've applied, a closed posting doesn't touch the job.
+Every status change is recorded with its date in the job's `status_history`, which is what the **Pipeline** tab charts. The **🔄 Reload Offers** button marks listings whose LinkedIn posting has closed ("No longer accepting applications") as `Closed`, but only while they're still `Pending` or `Interested` — once you've applied, a closed posting doesn't touch the job.
 
 ### How the LinkedIn/Glassdoor data gets in
 

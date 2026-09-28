@@ -11,12 +11,19 @@ from storage import load_state, save_state
 
 app = Flask(__name__)
 
-CLOSED_JOB_MARKER = "closed-job__flavor--closed"
-REMOVABLE_JOB_STATUSES = ("Pending", "Interested")
+# LinkedIn shows "No longer accepting applications" logged out and
+# "Not currently accepting applications" logged in; either means closed.
+CLOSED_JOB_MARKERS = (
+    "closed-job__flavor--closed",
+    "No longer accepting applications",
+    "Not currently accepting applications",
+)
+# Jobs you haven't acted on yet: only these get auto-discarded or auto-closed.
+UNTOUCHED_JOB_STATUSES = ("Pending", "Interested")
 
 
 def check_job_link_closed(url):
-    """Return True if the LinkedIn job posting at url is closed/removed,
+    """Return True if the LinkedIn job posting at url is closed (no longer accepting applications),
     False if it looks open, or None if it couldn't be checked."""
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     try:
@@ -24,7 +31,7 @@ def check_job_link_closed(url):
             html = resp.read().decode("utf-8", errors="ignore")
     except (urllib.error.URLError, OSError, ValueError):
         return None
-    return CLOSED_JOB_MARKER in html
+    return any(marker in html for marker in CLOSED_JOB_MARKERS)
 
 DATABASE_FILE = os.path.join(os.path.dirname(__file__), "data", "tracker.db")
 QUESTIONS_FILE = os.path.join(os.path.dirname(__file__), "data", "questions.json")
@@ -170,6 +177,39 @@ def ensure_company_exists(entry):
         "notes": "",
     })
     save_companies(data)
+
+
+def normalize_company(name):
+    return (name or "").strip().lower()
+
+
+def is_company_excluded(name):
+    key = normalize_company(name)
+    return bool(key) and any(
+        c.get("excluded") and normalize_company(c.get("company_name")) == key
+        for c in load_companies()["companies"]
+    )
+
+
+def discard_company_jobs(name):
+    """Mark every untouched job at this company as Discarded. Jobs you've
+    already applied to or are interviewing for are left alone. Returns how
+    many jobs were discarded."""
+    key = normalize_company(name)
+    data = load_jobs()
+    discarded = 0
+    for entry in data["jobs"]:
+        if normalize_company(entry.get("company")) != key:
+            continue
+        if entry.get("status", "Pending") not in UNTOUCHED_JOB_STATUSES:
+            continue
+        history = entry.get("status_history") or backfill_status_history(entry)
+        entry["status"] = "Discarded"
+        record_status(entry, history)
+        discarded += 1
+    if discarded:
+        save_jobs(data)
+    return discarded
 
 
 def migrate_company_contacts():
@@ -504,8 +544,29 @@ def update_company(entry_id):
             updated["id"] = entry_id
             data["companies"][i] = updated
             save_companies(data)
+            if updated.get("excluded") and not entry.get("excluded"):
+                discard_company_jobs(updated.get("company_name"))
             return jsonify(updated)
     return jsonify({"error": "Not found"}), 404
+
+
+@app.route("/api/companies/exclude", methods=["POST"])
+def exclude_company():
+    """Flag a company (by name) as one you don't want to work at, or clear the
+    flag. Excluding discards its untouched jobs; un-excluding only stops future
+    listings being auto-discarded, it doesn't restore anything."""
+    body = request.get_json()
+    name = (body.get("company") or "").strip()
+    if not name:
+        return jsonify({"error": "company is required"}), 400
+    excluded = bool(body.get("excluded", True))
+    ensure_company_exists({"company": name})
+    data = load_companies()
+    company = next(c for c in data["companies"] if normalize_company(c.get("company_name")) == normalize_company(name))
+    company["excluded"] = excluded
+    save_companies(data)
+    discarded = discard_company_jobs(name) if excluded else 0
+    return jsonify({"company": company, "discarded": discarded})
 
 
 @app.route("/api/companies/<entry_id>", methods=["DELETE"])
@@ -533,6 +594,8 @@ def create_job():
     data = load_jobs()
     entry = request.get_json()
     entry["id"] = str(uuid.uuid4())
+    if is_company_excluded(entry.get("company")):
+        entry["status"] = "Discarded"
     record_status(entry, [])
     sync_glassdoor_cache(entry)
     ensure_company_exists(entry)
@@ -577,21 +640,21 @@ def delete_job(entry_id):
 def refresh_jobs():
     data = load_jobs()
     checked = 0
-    removed = 0
+    closed = 0
     for entry in data["jobs"]:
         link = entry.get("link")
         # Once you've acted on a job, a closed listing doesn't change where you stand.
-        if not link or entry.get("status", "Pending") not in REMOVABLE_JOB_STATUSES:
+        if not link or entry.get("status", "Pending") not in UNTOUCHED_JOB_STATUSES:
             continue
         checked += 1
         if check_job_link_closed(link):
             history = entry.get("status_history") or backfill_status_history(entry)
-            entry["status"] = "Removed"
+            entry["status"] = "Closed"
             record_status(entry, history)
-            removed += 1
+            closed += 1
         time.sleep(0.3)
     save_jobs(data)
-    return jsonify({"checked": checked, "removed": removed})
+    return jsonify({"checked": checked, "closed": closed})
 
 
 if __name__ == "__main__":

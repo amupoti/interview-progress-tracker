@@ -278,6 +278,64 @@ def test_delete_company_not_found(client):
     assert res.status_code == 404
 
 
+def _job_statuses(client):
+    return {j["title"]: j["status"] for j in client.get("/api/jobs").get_json()}
+
+
+def test_exclude_company_discards_untouched_jobs_only(client):
+    client.post("/api/jobs", json={"company": "Acme", "title": "A", "status": "Pending"})
+    client.post("/api/jobs", json={"company": "acme ", "title": "B", "status": "Interested"})
+    client.post("/api/jobs", json={"company": "Acme", "title": "C", "status": "Applied"})
+    client.post("/api/jobs", json={"company": "Globex", "title": "D", "status": "Pending"})
+
+    res = client.post("/api/companies/exclude", json={"company": "ACME"})
+    assert res.status_code == 200
+    assert res.get_json()["discarded"] == 2
+    assert res.get_json()["company"]["excluded"] is True
+    assert _job_statuses(client) == {"A": "Discarded", "B": "Discarded", "C": "Applied", "D": "Pending"}
+
+
+def test_exclude_company_records_status_history(client):
+    client.post("/api/jobs", json={"company": "Acme", "title": "A", "status": "Pending"})
+    client.post("/api/companies/exclude", json={"company": "Acme"})
+    job = client.get("/api/jobs").get_json()[0]
+    assert [h["status"] for h in job["status_history"]] == ["Pending", "Discarded"]
+
+
+def test_exclude_unknown_company_creates_it(client):
+    client.post("/api/companies/exclude", json={"company": "Initech"})
+    companies = client.get("/api/companies").get_json()
+    assert [(c["company_name"], c["excluded"]) for c in companies] == [("Initech", True)]
+
+
+def test_exclude_company_requires_name(client):
+    assert client.post("/api/companies/exclude", json={"company": " "}).status_code == 400
+
+
+def test_new_job_at_excluded_company_is_discarded(client):
+    client.post("/api/companies/exclude", json={"company": "Acme"})
+    job = client.post("/api/jobs", json={"company": "Acme", "title": "A", "status": "Pending"}).get_json()
+    assert job["status"] == "Discarded"
+    assert [h["status"] for h in job["status_history"]] == ["Discarded"]
+
+
+def test_unexclude_company_stops_discarding_but_does_not_restore(client):
+    client.post("/api/jobs", json={"company": "Acme", "title": "A", "status": "Pending"})
+    client.post("/api/companies/exclude", json={"company": "Acme"})
+    res = client.post("/api/companies/exclude", json={"company": "Acme", "excluded": False})
+    assert res.get_json()["discarded"] == 0
+    job = client.post("/api/jobs", json={"company": "Acme", "title": "B", "status": "Pending"}).get_json()
+    assert job["status"] == "Pending"
+    assert _job_statuses(client)["A"] == "Discarded"
+
+
+def test_update_company_to_excluded_discards_jobs(client):
+    client.post("/api/jobs", json={"company": "Acme", "title": "A", "status": "Pending"})
+    company = client.get("/api/companies").get_json()[0]
+    client.put(f"/api/companies/{company['id']}", json={**company, "excluded": True})
+    assert _job_statuses(client)["A"] == "Discarded"
+
+
 # ── Jobs ───────────────────────────────────────────────────────────────────
 
 def test_list_jobs_empty(client):
@@ -413,7 +471,7 @@ def test_update_job_adds_new_company_if_changed(client):
     assert companies == {"Acme", "Globex"}
 
 
-def test_refresh_jobs_marks_closed_as_removed(client, monkeypatch):
+def test_refresh_jobs_marks_closed_as_closed(client, monkeypatch):
     monkeypatch.setattr(app_module.time, "sleep", lambda s: None)
     open_job = client.post(
         "/api/jobs",
@@ -430,11 +488,11 @@ def test_refresh_jobs_marks_closed_as_removed(client, monkeypatch):
 
     res = client.post("/api/jobs/refresh")
     assert res.status_code == 200
-    assert res.get_json() == {"checked": 2, "removed": 1}
+    assert res.get_json() == {"checked": 2, "closed": 1}
 
     jobs = {j["id"]: j for j in client.get("/api/jobs").get_json()}
-    assert jobs[open_job["id"]].get("status") != "Removed"
-    assert jobs[closed_job["id"]]["status"] == "Removed"
+    assert jobs[open_job["id"]].get("status") != "Closed"
+    assert jobs[closed_job["id"]]["status"] == "Closed"
 
 
 def test_refresh_jobs_skips_jobs_without_link(client, monkeypatch):
@@ -446,11 +504,11 @@ def test_refresh_jobs_skips_jobs_without_link(client, monkeypatch):
 
     res = client.post("/api/jobs/refresh")
     assert res.status_code == 200
-    assert res.get_json() == {"checked": 0, "removed": 0}
+    assert res.get_json() == {"checked": 0, "closed": 0}
     assert calls == []
 
 
-def test_refresh_jobs_skips_already_removed(client, monkeypatch):
+def test_refresh_jobs_skips_already_closed(client, monkeypatch):
     monkeypatch.setattr(app_module.time, "sleep", lambda s: None)
     client.post(
         "/api/jobs",
@@ -458,7 +516,7 @@ def test_refresh_jobs_skips_already_removed(client, monkeypatch):
             "company": "Acme",
             "title": "Staff SWE",
             "link": "https://example.com/x",
-            "status": "Removed",
+            "status": "Closed",
         },
     )
 
@@ -467,7 +525,7 @@ def test_refresh_jobs_skips_already_removed(client, monkeypatch):
 
     res = client.post("/api/jobs/refresh")
     assert res.status_code == 200
-    assert res.get_json() == {"checked": 0, "removed": 0}
+    assert res.get_json() == {"checked": 0, "closed": 0}
     assert calls == []
 
 
@@ -481,9 +539,9 @@ def test_refresh_jobs_keeps_jobs_already_in_progress(client, monkeypatch):
     monkeypatch.setattr(app_module, "check_job_link_closed", lambda url: calls.append(url) or True)
 
     res = client.post("/api/jobs/refresh")
-    assert res.get_json() == {"checked": 0, "removed": 0}
+    assert res.get_json() == {"checked": 0, "closed": 0}
     assert calls == []
-    assert "Removed" not in {j["status"] for j in client.get("/api/jobs").get_json()}
+    assert "Closed" not in {j["status"] for j in client.get("/api/jobs").get_json()}
 
 # ── Challenges progress migration ─────────────────────────────────────────────
 
@@ -574,3 +632,29 @@ def test_list_jobs_moves_company_contacts_onto_jobs(client):
         assert "contacts" not in jobs["4"]
     companies = client.get("/api/companies").get_json()
     assert all("contacts" not in c for c in companies)
+
+
+class _FakeResponse:
+    def __init__(self, html):
+        self._html = html.encode()
+
+    def read(self):
+        return self._html
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def test_check_job_link_closed_detects_both_linkedin_wordings(monkeypatch):
+    pages = {
+        "https://l/1": "<figcaption>No longer accepting applications</figcaption>",
+        "https://l/2": "<span>Not currently accepting applications</span>",
+        "https://l/3": "<button>Easy Apply</button>",
+    }
+    monkeypatch.setattr(app_module.urllib.request, "urlopen", lambda req, timeout: _FakeResponse(pages[req.full_url]))
+    assert app_module.check_job_link_closed("https://l/1") is True
+    assert app_module.check_job_link_closed("https://l/2") is True
+    assert app_module.check_job_link_closed("https://l/3") is False
