@@ -923,6 +923,7 @@ function jobsColValue(j, col) {
     case 'level':            return (j.level || '').toLowerCase();
     case 'location':         return (j.location || '').toLowerCase();
     case 'glassdoor_rating': return j.glassdoor_rating != null && j.glassdoor_rating !== '' ? Number(j.glassdoor_rating) : -1;
+    case 'match_score':      return j.match_score != null && j.match_score !== '' ? Number(j.match_score) : -1;
     case 'status':           return jobStatusRank(j);
     case 'date_added':       return j.date_added || '';
     default:                 return '';
@@ -934,6 +935,14 @@ const JOB_STATUS_ORDER = ['Offer', 'Interviewing', 'Applied', 'Interested', 'Pen
 function jobStatusRank(j) {
   const i = JOB_STATUS_ORDER.indexOf(j.status || 'Pending');
   return i === -1 ? JOB_STATUS_ORDER.length : i;
+}
+
+// CV match score (0–100), filled in by Claude when a job is added.
+function matchBadge(score) {
+  const n = Number(score);
+  if (n >= 75) return 'badge-match-high';
+  if (n >= 50) return 'badge-match-mid';
+  return 'badge-match-low';
 }
 
 const JOB_SUNK_STATUSES = ['Rejected', 'Discarded'];
@@ -996,7 +1005,7 @@ function jobsRender() {
 
   const tbody = document.getElementById('jobs-tbody');
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr id="jobs-empty-row"><td colspan="7" class="empty-msg">${jobs.length === 0 ? 'No jobs yet. Click "+ Add Job" to get started.' : 'No jobs match your search.'}</td></tr>`;
+    tbody.innerHTML = `<tr id="jobs-empty-row"><td colspan="8" class="empty-msg">${jobs.length === 0 ? 'No jobs yet. Click "+ Add Job" to get started.' : 'No jobs match your search.'}</td></tr>`;
     return;
   }
 
@@ -1018,6 +1027,10 @@ function jobsRender() {
       <td>
         ${j.glassdoor_rating != null && j.glassdoor_rating !== '' ? `${stars(Math.round(j.glassdoor_rating))} <span style="font-size:12px;color:#64748b;">${j.glassdoor_rating}</span>` : '—'}
         ${j.glassdoor_notes ? `<br/><span style="font-size:12px;color:#64748b;white-space:pre-wrap;">${esc(j.glassdoor_notes)}</span>` : ''}
+      </td>
+      <td>
+        ${j.match_score != null && j.match_score !== '' ? `<span class="badge ${matchBadge(j.match_score)}">${j.match_score}</span>` : '—'}
+        ${j.match_notes ? `<br/><span style="font-size:12px;color:#64748b;white-space:pre-wrap;">${esc(j.match_notes)}</span>` : ''}
       </td>
       <td>
         <select class="badge status-select ${JOB_STATUS_BADGE[j.status] || ''}" title="Change status"
@@ -1159,7 +1172,8 @@ async function jobsHandleSubmit(evt) {
     const res = await fetch(`/api/jobs/${jobsEditingId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(entry),
+      // PUT replaces the record, so keep fields the form doesn't show (match score, description…).
+      body: JSON.stringify({ ...jobs.find(x => x.id === jobsEditingId), ...entry }),
     });
     const saved = await res.json();
     jobs = jobs.map(x => x.id === jobsEditingId ? saved : x);

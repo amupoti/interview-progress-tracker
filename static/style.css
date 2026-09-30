@@ -171,6 +171,9 @@ select.status-select:focus { outline: 2px solid #93c5fd; outline-offset: 1px; }
 .badge-referral     { background: #ede9fe; color: #6d28d9; }
 .badge-senior       { background: #ccfbf1; color: #0f766e; }
 .badge-staff        { background: #e0e7ff; color: #3730a3; }
+.badge-match-high   { background: #d1fae5; color: #065f46; }
+.badge-match-mid    { background: #fef3c7; color: #b45309; }
+.badge-match-low    { background: #fee2e2; color: #991b1b; }
 
 /* ── Interest stars ── */
 .stars { color: #f59e0b; letter-spacing: 1px; }

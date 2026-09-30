@@ -15,7 +15,7 @@ Gathers new job listings for the user's Staff Software Engineer job search (Barc
 
 ## Steps
 
-1. **Load browser tools** if not already loaded: `ToolSearch("select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__javascript_tool,mcp__claude-in-chrome__tabs_create_mcp,mcp__claude-in-chrome__tabs_close_mcp")`.
+1. **Load browser tools** if not already loaded: `ToolSearch("select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__javascript_tool,mcp__claude-in-chrome__computer,mcp__claude-in-chrome__browser_batch,mcp__claude-in-chrome__tabs_create_mcp,mcp__claude-in-chrome__tabs_close_mcp")`.
 
 2. **Get current jobs for dedup.** Start the local app if not running (`cd` into the repo, `(python3 app.py > /tmp/tracker_app.log 2>&1 &)`, port 5001), then `GET http://localhost:5001/api/jobs`. Build a set of already-tracked LinkedIn job ids by parsing the numeric id out of each `link` (`/jobs/view/<id>/`) — dedupe on this id, not company name, since companies can have multiple distinct tracked roles. Also `GET http://localhost:5001/api/companies` and collect the names of companies with `excluded: true` (compare lowercased/trimmed) — the user has said they don't want to work there.
 
@@ -50,14 +50,41 @@ Gathers new job listings for the user's Staff Software Engineer job search (Barc
    - Some small/new companies have no Glassdoor presence at all — leave `glassdoor_rating`/`glassdoor_notes` blank rather than guessing (don't force a match to an unrelated same-named company). Blank results aren't cached, so they'll be retried next run.
    - **Do this inline for every job as you add it, not as an afterthought** — skipping it on a whole batch and backfilling later has already happened once and needed a follow-up correction.
 
-6. **Add each qualifying new listing** via `POST http://localhost:5001/api/jobs` with: `company`, `title`, `location` (as shown on LinkedIn, e.g. "Barcelona, Catalonia, Spain (Remote)"), `work_mode` (`Remote`/`Hybrid`/`Onsite`, parsed from the location suffix), `level` (`Senior`/`Staff`), `link` (the `/jobs/view/<id>/` URL), `glassdoor_rating`, `glassdoor_notes` (omit both if reusing a cached value — the backend fills them in from the cache), `status: "Pending"`, `date_added` (today, ISO format). Do this via a small Python script using `urllib.request` (see prior conversation for the exact pattern) rather than one curl call per job. Posting a job that *does* include a `glassdoor_rating` writes/refreshes that company's cache entry automatically. The backend also auto-adds the company to the **Companies** tab if it's not already there (nothing to do here — no need to also `POST /api/companies` yourself).
+5b. **Score each new listing against the user's CV.** Score in bulk, without opening each job page.
+   - **Find the CV.** It lives in `data/`, is gitignored, and the file name changes between versions, so don't hardcode it. List `data/*.pdf` (then `*.docx`/`*.doc`). If there are several, prefer names containing "cv" or "resume" (case-insensitive), then the most recently modified. Read it with the Read tool once per run. If no CV is found, stop and ask the user rather than scoring from memory.
+   - **Derive the profile from the CV you just read**: primary languages/stack, seniority, domains, languages spoken. Don't rely on a remembered profile, since the CV may have been updated.
+   - **Which jobs:** the new listings from step 4, **plus any already-tracked job with status `Pending` or `Interested` and no `match_score`** (backfill). Collect their LinkedIn ids.
+   - **Fetch descriptions** from any linkedin.com tab (e.g. `https://www.linkedin.com/jobs/`) through the logged-in API. Run the loop sequentially with a ~1.5s gap. Start it without awaiting (`window.__run=(async()=>{...})()`) and poll `Object.keys(window.__t).length` with `computer` waits, because a single JS call times out at 45s:
+     ```js
+     const csrf=(document.cookie.match(/JSESSIONID="?([^";]+)/)||[])[1];
+     const r=await fetch('/voyager/api/jobs/jobPostings/'+id+'?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65',
+       {headers:{'csrf-token':csrf,'x-restli-protocol-version':'2.0.0'}});
+     const j=await r.json();
+     window.__t[id]={title:j.title, state:j.jobState, closed:!!(j.applyingInfo&&j.applyingInfo.closed), loc:j.formattedLocation, text:(j.description&&j.description.text)||''};
+     ```
+     On a non-200 response, retry after 5s, then 10s. Don't use the guest endpoint `/jobs-guest/jobs/api/jobPosting/<id>`, which returns 429 after ~20 calls.
+   - **`jobState` other than `LISTED`** (`SUSPENDED`/`CLOSED`), or `applyingInfo.closed`, means the listing is no longer accepting applications. Don't add new listings in that state (list them as skipped in the report). For backfilled jobs, still score them, and add "LinkedIn shows the listing as no longer active." to `match_notes`.
+   - **Read the descriptions back.** `javascript_tool` output is capped at ~1000 chars, and posting the text to a local server was denied by auto mode. So condense each job in-page to ~400 chars and read the joined string in 980-char slices, ~15 slices per `browser_batch`. Each summary line holds:
+     - the last 4 id digits, a state flag, the title and the location
+     - stack/domain keyword tags: java, kotlin, scala, go (`/\bGo\b|golang/`, case-sensitive), python, ts/node, rust, c++, php, c#, spring, aws, gcp, k8s, kafka, payments, e-commerce, search/ranking, ML, frontend, mobile, freelance/contractor
+     - the first two "N+ years" matches
+     - a snippet around location/office-days/timezone/visa wording
+     - ~200 chars starting at the first "Requirements / What you'll bring / You have / Qualifications / About you" heading
+
+     If a job is borderline or its summary is ambiguous, slice its full `window.__t[id].text` instead. `DOMParser` and `<template>` `querySelector` return nothing on LinkedIn pages, so use string ops only.
+   - Score 0–100 with this rubric: required skills/tech stack 40, seniority & scope 25, domain/industry 20, logistics (location, work mode, contract type, language) 15. Freelance/agency postings score low on logistics. Roles whose primary stack isn't in the CV score low on skills. Stacks and domains that are the CV's strengths score high. As of the 2026-09 CV those are Java/Spring/AWS backend, distributed systems, payments/e-commerce and search/ranking; re-check this against the current CV each run.
+   - Set `match_score` (integer) and `match_notes` (one sentence: strongest fit + main gaps) on the job in the step 6 POST. If the listing's title on LinkedIn differs from the search card (e.g. it's now "Principal"), mention it in `match_notes`.
+   - For backfilled jobs, `PUT /api/jobs/<id>` the **full** existing record with `match_score`/`match_notes` added. PUT replaces the record, so fetch each job from `GET /api/jobs` first.
+   - Also fix `location` when it disagrees with `work_mode`. For example, LinkedIn tags a role "(On-site)" while the posting is hybrid. Keep the two consistent, and mention the LinkedIn tag in `match_notes` if it's misleading.
+
+6. **Add each qualifying new listing** via `POST http://localhost:5001/api/jobs` with: `company`, `title`, `location` (as shown on LinkedIn, e.g. "Barcelona, Catalonia, Spain (Remote)"), `work_mode` (`Remote`/`Hybrid`/`Onsite`, parsed from the location suffix), `level` (`Senior`/`Staff`), `link` (the `/jobs/view/<id>/` URL), `glassdoor_rating`, `glassdoor_notes` (omit both if reusing a cached value — the backend fills them in from the cache), `match_score`, `match_notes` (from step 5b), `status: "Pending"`, `date_added` (today, ISO format). Do this via a small Python script using `urllib.request` (see prior conversation for the exact pattern) rather than one curl call per job. Posting a job that *does* include a `glassdoor_rating` writes/refreshes that company's cache entry automatically. The backend also auto-adds the company to the **Companies** tab if it's not already there (nothing to do here — no need to also `POST /api/companies` yourself).
 
 7. **Close out listings that stopped accepting applications.** `POST http://localhost:5001/api/jobs/refresh` (takes a few minutes; it fetches every link with a 0.3s delay, so run it with a long timeout or in the background). It moves `Pending`/`Interested` jobs whose LinkedIn page says "No longer accepting applications" / "Not currently accepting applications" to `Closed`, and leaves jobs you've acted on (Applied, Interviewing, Offer, Rejected, Discarded) alone. It returns `{"checked": N, "closed": M}`.
 
-8. **Stop the local Flask server** when done (`pkill -f "app.py"` — the macOS process shows as `Python app.py`, so a `python3 app.py` pattern never matches) and close any browser tabs opened for this task.
+8. **Restart the local Flask server** when done so the user is left with the app running: stop it (`pkill -f "app.py"` — the macOS process shows as `Python app.py`, so a `python3 app.py` pattern never matches), start it again (`(python3 app.py > /tmp/tracker_app.log 2>&1 &)`), and check `http://localhost:5001/` returns 200. Close any browser tabs opened for this task.
    - **Gotcha:** `PUT /api/jobs/<id>` replaces the whole record, it does not merge. To fix one field, send the full job object.
 
-9. **Report back**: total new listings added, how many listings were closed in step 7, level breakdown (Senior/Staff), and any listings intentionally skipped that the user might expect to see (excluded companies, agency reposts, relocation-required, out-of-scope locations) so they can sanity-check the filtering.
+9. **Report back**: total new listings added (with their match scores, highest first), how many existing jobs were backfilled with a score in step 5b (plus any backfilled job scoring ≥ 65), how many listings were closed in step 7, level breakdown (Senior/Staff), and any listings intentionally skipped that the user might expect to see (excluded companies, agency reposts, relocation-required, out-of-scope locations) so they can sanity-check the filtering.
 
 ## Why this can't be automated
 
