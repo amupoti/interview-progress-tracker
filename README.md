@@ -44,7 +44,7 @@ The Jobs tab tracks each listing from the moment you find it until it ends in an
 | Job Title | Role as listed |
 | Location | City/country as listed |
 | Work Mode | `Remote`, `Hybrid`, or `Onsite` |
-| Level | `Senior`, `Staff`, or `Other` |
+| Level | One of the `levels` in `job-search.json`, or `Other` |
 | Link | URL to the original listing |
 | Glassdoor Rating | 0–5 stars |
 | Glassdoor Notes | Review highlights, red flags, sample size caveats, etc. |
@@ -55,7 +55,7 @@ The Jobs tab tracks each listing from the moment you find it until it ends in an
 
 **Filtering and sorting**
 
-- Filter by work mode (Remote / Hybrid / Onsite), by level (Senior / Staff / Other), or free-text search across company, title, location, level, and notes.
+- Filter by work mode (Remote / Hybrid / Onsite), by level (the configured levels, or Other), or free-text search across company, title, location, level, and notes.
 - Click any column header to sort by it.
 - With no column sort active, rows default-sort **by how far along the process they are**: `Offer` → `Interviewing` → `Applied` → `Interested` → `Pending`, then closed-out `Rejected` / `Discarded` / `Closed` at the bottom. Sorting by the Status column uses the same order.
 - Within a status, **referral-aware ranking** applies: any job at a company that has a contact listed in the **Companies** tab floats to the top, with Glassdoor rating as the tiebreaker.
@@ -76,12 +76,22 @@ Listings are gathered as a manual research pass: an AI assistant (or you, by han
 
 This can't be automated via a button in the app or a scheduled job — LinkedIn blocks unauthenticated server-side requests to its search endpoints outright, and a scheduled/cloud agent has no access to your logged-in browser session either. The only thing that works is a live AI coding session (e.g. Claude Code) driving your actual browser, triggered by you when you want a refresh.
 
-The **🔍 Search LinkedIn** button is a shortcut for browsing that search yourself: it opens a new tab straight to a LinkedIn job search prefilled with `"Senior Software Engineer" OR "Staff Software Engineer"` across Spain, sorted by most recent. It doesn't fetch or add anything itself.
+The **🔍 Search LinkedIn** button is a shortcut for browsing that search yourself: it opens a new tab with a LinkedIn job search for the configured `keywords` (OR-ed together) in `linkedin_location`, sorted by most recent. It doesn't fetch or add anything itself.
+
+### Configuring your search
+
+What to search for lives in `job-search.json` at the repo root. It's gitignored, so each person keeps their own. Start from the committed template:
+
+```bash
+cp job-search.example.json job-search.json
+```
+
+Then edit the role, levels, keywords, locations and excluded employers. The app serves the file at `GET /api/search-config` and uses it for the level dropdowns and the Search LinkedIn button. It falls back to the example file if you haven't made your own. If the file is missing when you run the skill below, Claude asks you for the basics and writes it for you.
 
 **A Claude Code skill is what actually does the gathering.** It's checked into this repo at `.claude/skills/update-jobs/SKILL.md`, so it's available to anyone who clones the repo and opens it in Claude Code — no setup beyond having the browser-automation tool (Claude in Chrome) connected. To use it, ask Claude to update/refresh the job list; it will:
 
-1. Browse your LinkedIn "Jobs that match your profile" feed *and* run an explicit "Senior Software Engineer" search — the feed alone misses variant titles like "Tech Lead" or "Architect", and the keyword search alone under-surfaces Senior roles once your title is Staff, so both are needed.
-2. Filter to Senior/Staff roles that are remote-in-Spain or hybrid/onsite specifically in Barcelona, skipping relocation-required postings, contract/freelance gigs, staffing-agency reposts, and generalist IT consultancies.
+1. Browse your LinkedIn "Jobs that match your profile" feed *and* run each keyword search from `job-search.json`. The feed alone misses variant titles like "Tech Lead", and the keyword searches alone under-surface levels below your current title, so both are needed.
+2. Filter to the configured levels and locations (remote in `remote_regions`, or hybrid/onsite in `onsite_cities`), skipping `exclude_employers` and the posting types in `exclude_postings`.
 3. Deduplicate against what's already in the Jobs tab (by LinkedIn job ID).
 4. Look up each new company's Glassdoor rating (or copy it from an existing entry at the same company) and add the listing via the API.
 

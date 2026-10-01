@@ -658,3 +658,22 @@ def test_check_job_link_closed_detects_both_linkedin_wordings(monkeypatch):
     assert app_module.check_job_link_closed("https://l/1") is True
     assert app_module.check_job_link_closed("https://l/2") is True
     assert app_module.check_job_link_closed("https://l/3") is False
+
+
+# ── Search config ─────────────────────────────────────────────────────────────
+
+def test_search_config_falls_back_to_example(client, tmp_path, monkeypatch):
+    monkeypatch.setattr(app_module, "SEARCH_CONFIG_FILE", str(tmp_path / "missing.json"))
+    res = client.get("/api/search-config")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["levels"]
+    assert data["keywords"]
+
+
+def test_search_config_prefers_personal_file(client, tmp_path, monkeypatch):
+    personal = tmp_path / "job-search.json"
+    personal.write_text(json.dumps({"role": "Designer", "levels": ["Lead"], "keywords": ['"Lead Designer"']}))
+    monkeypatch.setattr(app_module, "SEARCH_CONFIG_FILE", str(personal))
+    res = client.get("/api/search-config")
+    assert res.get_json()["levels"] == ["Lead"]

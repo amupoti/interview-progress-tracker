@@ -26,6 +26,7 @@ let jobsContactCount = 0;
 let jobsLoaded = false;
 let jobsSortCol = null;
 let jobsSortDir = 'asc';
+let searchConfig = null;
 
 const JOB_STATUS_BADGE = {
   'Pending':      'badge-pending',
@@ -53,6 +54,8 @@ const JOB_LEVEL_BADGE = {
 document.addEventListener('DOMContentLoaded', () => {
   jobsLoaded = true;
   jobsFetchJobs();
+  // Level options come from the search config, so apply URL filters once they exist.
+  loadSearchConfig().finally(jobsApplyUrlFilters);
 
   document.getElementById('pipeline-include-untouched').addEventListener('change', pipelineRender);
   window.addEventListener('resize', () => {
@@ -110,8 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('jobs-form').addEventListener('submit', jobsHandleSubmit);
   document.getElementById('jobs-btn-add-contact').addEventListener('click', () => jobsAddContactRow());
   document.getElementById('jobs-search').addEventListener('input', jobsRender);
-  document.getElementById('jobs-work-mode-filter').addEventListener('change', jobsRender);
-  document.getElementById('jobs-level-filter').addEventListener('change', jobsRender);
+  document.getElementById('jobs-work-mode-filter').addEventListener('change', jobsFilterChanged);
+  document.getElementById('jobs-level-filter').addEventListener('change', jobsFilterChanged);
   document.querySelectorAll('#jobs-table th[data-col]').forEach(th => {
     th.addEventListener('click', () => {
       const col = th.dataset.col;
@@ -890,9 +893,58 @@ function jobsRenderUpcoming() {
   `).join('');
 }
 
+/* Levels and LinkedIn search terms come from job-search.json (see README). */
+async function loadSearchConfig() {
+  const res = await fetch('/api/search-config');
+  searchConfig = await res.json();
+  for (const id of ['jobs-level-filter', 'jobs-f-level']) {
+    const select = document.getElementById(id);
+    const other = select.querySelector('option[value="Other"]');
+    for (const level of searchConfig.levels || []) {
+      select.insertBefore(new Option(level, level), other);
+    }
+  }
+}
+
+function ensureLevelOption(select, level) {
+  if (level && !Array.from(select.options).some(o => o.value === level)) {
+    select.add(new Option(level, level));
+  }
+}
+
+/* Work mode and level filters live in the query string so filtered views can be bookmarked. */
+const JOBS_URL_FILTERS = {
+  work_mode: 'jobs-work-mode-filter',
+  level:     'jobs-level-filter',
+};
+
+function jobsApplyUrlFilters() {
+  const params = new URLSearchParams(location.search);
+  for (const [param, id] of Object.entries(JOBS_URL_FILTERS)) {
+    const select = document.getElementById(id);
+    const value = params.get(param) || '';
+    if (param === 'level') ensureLevelOption(select, value);
+    if (Array.from(select.options).some(o => o.value === value)) select.value = value;
+  }
+  jobsRender();
+}
+
+function jobsFilterChanged() {
+  const params = new URLSearchParams(location.search);
+  for (const [param, id] of Object.entries(JOBS_URL_FILTERS)) {
+    const value = document.getElementById(id).value;
+    if (value) params.set(param, value);
+    else params.delete(param);
+  }
+  const query = params.toString();
+  history.replaceState(null, '', location.pathname + (query ? '?' + query : '') + location.hash);
+  jobsRender();
+}
+
 function jobsSearchLinkedIn() {
-  const keywords = '"Senior Software Engineer" OR "Staff Software Engineer"';
-  const url = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent('Spain')}&sortBy=DD`;
+  const keywords = (searchConfig?.keywords || []).join(' OR ');
+  const location = searchConfig?.linkedin_location || '';
+  const url = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent(location)}&sortBy=DD`;
   window.open(url, '_blank', 'noopener');
 }
 
@@ -1019,7 +1071,7 @@ function jobsRender() {
         <br/><span style="font-size:13px;color:#64748b;">${esc(j.company)}</span>
         ${contacts.length ? `<br/><span class="badge badge-referral">🤝 ${esc(contacts.map(p => p.name).join(', '))}</span>` : ''}
       </td>
-      <td>${j.level ? `<span class="badge ${JOB_LEVEL_BADGE[j.level] || ''}">${esc(j.level)}</span>` : '—'}</td>
+      <td>${j.level ? `<span class="badge ${JOB_LEVEL_BADGE[j.level] || 'badge-level'}">${esc(j.level)}</span>` : '—'}</td>
       <td>
         ${j.location ? esc(j.location) : '—'}
         ${j.work_mode ? `<br/><span class="badge ${WORK_MODE_BADGE[j.work_mode] || ''}">${esc(j.work_mode)}</span>` : ''}
@@ -1074,6 +1126,7 @@ function jobsOpenEdit(id) {
   document.getElementById('jobs-f-title').value = j.title || '';
   document.getElementById('jobs-f-location').value = j.location || '';
   document.getElementById('jobs-f-work_mode').value = j.work_mode || '';
+  ensureLevelOption(document.getElementById('jobs-f-level'), j.level);
   document.getElementById('jobs-f-level').value = j.level || '';
   document.getElementById('jobs-f-link').value = j.link || '';
   document.getElementById('jobs-f-glassdoor_rating').value = j.glassdoor_rating != null ? j.glassdoor_rating : '';

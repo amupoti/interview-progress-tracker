@@ -21,6 +21,8 @@ data/challenges_progress.json
 data/*.pdf
 data/*.docx
 data/*.doc
+# Personal job-search settings (copy job-search.example.json)
+job-search.json
 
 # Claude Code local runtime state (skills under .claude/skills/ are tracked)
 .claude/scheduled_tasks.lock

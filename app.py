@@ -44,6 +44,8 @@ RECRUITER_PRACTICE_FILE = os.path.join(os.path.dirname(__file__), "data", "recru
 COMPANIES_FILE = os.path.join(os.path.dirname(__file__), "data", "companies.json")
 JOBS_FILE = os.path.join(os.path.dirname(__file__), "data", "jobs.json")
 GLASSDOOR_CACHE_FILE = os.path.join(os.path.dirname(__file__), "data", "glassdoor_cache.json")
+SEARCH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), "job-search.json")
+SEARCH_CONFIG_EXAMPLE_FILE = os.path.join(os.path.dirname(__file__), "job-search.example.json")
 
 
 def load_questions():
@@ -618,6 +620,17 @@ def update_job(entry_id):
             save_jobs(data)
             return jsonify(updated)
     return jsonify({"error": "Not found"}), 404
+
+
+def load_search_config():
+    path = SEARCH_CONFIG_FILE if os.path.exists(SEARCH_CONFIG_FILE) else SEARCH_CONFIG_EXAMPLE_FILE
+    with open(path) as f:
+        return json.load(f)
+
+
+@app.route("/api/search-config", methods=["GET"])
+def get_search_config():
+    return jsonify(load_search_config())
 
 
 @app.route("/api/glassdoor-cache", methods=["GET"])

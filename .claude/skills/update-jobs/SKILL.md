@@ -1,17 +1,39 @@
 ---
 name: update-jobs
-description: Gather new Senior/Staff Software Engineer listings from LinkedIn and add them to this app's Jobs tab. Use when the user asks to refresh, reload, or update the job list/search, or add new LinkedIn listings.
+description: Gather new LinkedIn job listings matching the search configured in job-search.json and add them to this app's Jobs tab. Use when the user asks to refresh, reload, or update the job list/search, or add new LinkedIn listings.
 ---
 
 # Update Jobs
 
-Gathers new job listings for the user's Staff Software Engineer job search (Barcelona / remote Spain) and adds them to this app's Jobs tab. This can **only** be done by driving the user's real logged-in Chrome session through the Claude in Chrome tool — there is no way to automate this via the app's backend or a scheduled cloud routine (both are blocked; see "Why this can't be automated" below). Every run of this skill must be triggered live, in a session with Chrome connected.
+Gathers new job listings for the user's job search, as configured in `job-search.json`, and adds them to this app's Jobs tab. This can **only** be done by driving the user's real logged-in Chrome session through the Claude in Chrome tool — there is no way to automate this via the app's backend or a scheduled cloud routine (both are blocked; see "Why this can't be automated" below). Every run of this skill must be triggered live, in a session with Chrome connected.
+
+## Search config
+
+The search is defined in `job-search.json` at the repo root (gitignored, one per person). Read it first, every run. If it doesn't exist, ask the user for their target role, levels, LinkedIn search location, and which cities they'd accept hybrid/onsite work in. Then write `job-search.json` using `job-search.example.json` as the template, and show it to them before continuing.
+
+Fields:
+
+- `role`: the job family, e.g. "Software Engineer" or "Product Designer".
+- `levels`: the levels to keep. These are also the values to use for the job's `level` field. Use `Other` for anything else that's still in scope.
+- `level_equivalents`: other titles that count as in-scope levels, e.g. "Tech Lead".
+- `exclude_levels`: levels to always drop, e.g. "Principal".
+- `keywords`: the LinkedIn keyword searches to run, one search each. Quoted phrases only match exact wording. Short title variants need their own entry: "Staff Engineer" doesn't match a search for "Staff Software Engineer".
+- `linkedin_location`: the `location=` value for LinkedIn search.
+- `remote_regions`: remote roles are in scope when they're open to any of these regions.
+- `onsite_cities`: hybrid/onsite roles are in scope only in these cities.
+- `exclude_employers`: employers to always skip, in addition to companies flagged `excluded` in the Companies tab.
+- `exclude_postings`: kinds of posting to skip.
+- `notes`: free-text guidance for judgment calls.
 
 ## Search scope
 
-- **Levels:** Senior or Staff only (or clear equivalents like "Engineering Lead", "Tech Lead", "Staff Engineer"). Explicitly **exclude Principal-level** roles.
-- **Location:** Remote roles anywhere in Spain/EMEA/EU/EEA, OR Hybrid/Onsite roles specifically in Barcelona. Hybrid/onsite roles outside Barcelona (Madrid, Zaragoza, etc.) are out of scope.
-- **Exclude:** any listing from a company flagged `excluded` in the Companies tab (skip it entirely — don't add it; the backend would auto-discard it anyway), relocation-required postings (e.g. "Bangkok based, relocation provided"), freelance/temporary/hourly-contract postings, staffing-agency/recruiter reposts that obscure the real employer (names like "X Consultants", "X Staffing", "X People Ltd", "Jobgether", "Hire Feed"), generalist IT consultancies/body-shops even when posting under their own name (NTT DATA, GFT Technologies, Indra Group, ALTEN, Robert Walters, K2 Partnering Solutions, Lawrence Harvey, etc. — the actual work is typically client placement, not a genuine product-company IC role), and roles clearly outside core software engineering (e.g. embedded firmware) unless the domain overlaps the user's background (distributed systems/backend).
+- **Levels:** `levels` or `level_equivalents` only. Drop anything matching `exclude_levels`.
+- **Location:** remote roles open to any of `remote_regions`, or hybrid/onsite roles in one of `onsite_cities`. Hybrid/onsite roles anywhere else are out of scope.
+- **Exclude:**
+  - any listing from a company flagged `excluded` in the Companies tab. Skip it entirely; the backend would auto-discard it anyway.
+  - employers in `exclude_employers`.
+  - postings matching `exclude_postings`. Typical patterns: "X Consultants", "X Staffing", "X People Ltd" agency names. Generalist consultancies are excluded even when posting under their own name, because the work is client placement rather than a genuine in-house role. Relocation-required looks like "Bangkok based, relocation provided".
+  - roles outside the configured `role`, interpreted with `notes`.
 
 ## Steps
 
@@ -19,12 +41,9 @@ Gathers new job listings for the user's Staff Software Engineer job search (Barc
 
 2. **Get current jobs for dedup.** Start the local app if not running (`cd` into the repo, `(python3 app.py > /tmp/tracker_app.log 2>&1 &)`, port 5001), then `GET http://localhost:5001/api/jobs`. Build a set of already-tracked LinkedIn job ids by parsing the numeric id out of each `link` (`/jobs/view/<id>/`) — dedupe on this id, not company name, since companies can have multiple distinct tracked roles. Also `GET http://localhost:5001/api/companies` and collect the names of companies with `excluded: true` (compare lowercased/trimmed) — the user has said they don't want to work there.
 
-3. **Gather candidates from two sources, every pass** (neither alone is thorough — confirmed by experience: keyword search misses title variants like "Engineering Lead"; the personalized feed likely under-surfaces Senior roles since LinkedIn's algorithm weighs the user's current Staff-level title):
+3. **Gather candidates from two sources, every pass** (neither alone is thorough — confirmed by experience: keyword search misses title variants like "Engineering Lead"; the personalized feed under-surfaces levels below the user's current title):
    - Browse the user's personalized feed: navigate to `https://www.linkedin.com/jobs/collections/recommended/` (or the "Jobs" home) in the user's logged-in session.
-   - Also run **all three** explicit exact-phrase keyword searches (`https://www.linkedin.com/jobs/search/?keywords=<phrase>&location=Spain&sortBy=DD`), every pass:
-     - `%22Senior%20Software%20Engineer%22`
-     - `%22Staff%20Software%20Engineer%22`
-     - `%22Staff%20Engineer%22` — needed because quoted phrases only match exact wording: a job titled plain "Staff Engineer" (e.g. dLocal, Barcelona) never shows up under "Staff Software Engineer" (confirmed).
+   - Also run **every** search in the config's `keywords`, every pass, as `https://www.linkedin.com/jobs/search/?keywords=<url-encoded keyword>&location=<url-encoded linkedin_location>&sortBy=DD`. Run them separately, not OR-ed together.
    - For each source, page through **multiple pages** (don't stop at page 1 — thin results on page 1 undercount badly). Click through page numbers at the bottom of the results list.
    - On each page, the results list is virtualized — scroll down within the list (`computer` scroll action at the list's coordinates, a couple of times with short waits) to force all cards to render before extracting.
    - Extract structured data with `javascript_tool`:
@@ -66,25 +85,25 @@ Gathers new job listings for the user's Staff Software Engineer job search (Barc
    - **`jobState` other than `LISTED`** (`SUSPENDED`/`CLOSED`), or `applyingInfo.closed`, means the listing is no longer accepting applications. Don't add new listings in that state (list them as skipped in the report). For backfilled jobs, still score them, and add "LinkedIn shows the listing as no longer active." to `match_notes`.
    - **Read the descriptions back.** `javascript_tool` output is capped at ~1000 chars, and posting the text to a local server was denied by auto mode. So condense each job in-page to ~400 chars and read the joined string in 980-char slices, ~15 slices per `browser_batch`. Each summary line holds:
      - the last 4 id digits, a state flag, the title and the location
-     - stack/domain keyword tags: java, kotlin, scala, go (`/\bGo\b|golang/`, case-sensitive), python, ts/node, rust, c++, php, c#, spring, aws, gcp, k8s, kafka, payments, e-commerce, search/ranking, ML, frontend, mobile, freelance/contractor
+     - keyword tags for the skills, tools and domains in the CV profile, plus common alternatives in the configured `role`, plus freelance/contractor. For example, for backend engineering: java, kotlin, scala, go (`/\bGo\b|golang/`, case-sensitive), python, ts/node, rust, spring, aws, gcp, k8s, kafka.
      - the first two "N+ years" matches
      - a snippet around location/office-days/timezone/visa wording
      - ~200 chars starting at the first "Requirements / What you'll bring / You have / Qualifications / About you" heading
 
      If a job is borderline or its summary is ambiguous, slice its full `window.__t[id].text` instead. `DOMParser` and `<template>` `querySelector` return nothing on LinkedIn pages, so use string ops only.
-   - Score 0–100 with this rubric: required skills/tech stack 40, seniority & scope 25, domain/industry 20, logistics (location, work mode, contract type, language) 15. Freelance/agency postings score low on logistics. Roles whose primary stack isn't in the CV score low on skills. Stacks and domains that are the CV's strengths score high. As of the 2026-09 CV those are Java/Spring/AWS backend, distributed systems, payments/e-commerce and search/ranking; re-check this against the current CV each run.
+   - Score 0–100 with this rubric: required skills/tech stack 40, seniority & scope 25, domain/industry 20, logistics (location, work mode, contract type, language) 15. Freelance/agency postings score low on logistics. Roles whose primary stack isn't in the CV score low on skills. Stacks and domains that are the CV's strengths, as derived above, score high.
    - Set `match_score` (integer) and `match_notes` (one sentence: strongest fit + main gaps) on the job in the step 6 POST. If the listing's title on LinkedIn differs from the search card (e.g. it's now "Principal"), mention it in `match_notes`.
    - For backfilled jobs, `PUT /api/jobs/<id>` the **full** existing record with `match_score`/`match_notes` added. PUT replaces the record, so fetch each job from `GET /api/jobs` first.
    - Also fix `location` when it disagrees with `work_mode`. For example, LinkedIn tags a role "(On-site)" while the posting is hybrid. Keep the two consistent, and mention the LinkedIn tag in `match_notes` if it's misleading.
 
-6. **Add each qualifying new listing** via `POST http://localhost:5001/api/jobs` with: `company`, `title`, `location` (as shown on LinkedIn, e.g. "Barcelona, Catalonia, Spain (Remote)"), `work_mode` (`Remote`/`Hybrid`/`Onsite`, parsed from the location suffix), `level` (`Senior`/`Staff`), `link` (the `/jobs/view/<id>/` URL), `glassdoor_rating`, `glassdoor_notes` (omit both if reusing a cached value — the backend fills them in from the cache), `match_score`, `match_notes` (from step 5b), `status: "Pending"`, `date_added` (today, ISO format). Do this via a small Python script using `urllib.request` (see prior conversation for the exact pattern) rather than one curl call per job. Posting a job that *does* include a `glassdoor_rating` writes/refreshes that company's cache entry automatically. The backend also auto-adds the company to the **Companies** tab if it's not already there (nothing to do here — no need to also `POST /api/companies` yourself).
+6. **Add each qualifying new listing** via `POST http://localhost:5001/api/jobs` with: `company`, `title`, `location` (as shown on LinkedIn, e.g. "Barcelona, Catalonia, Spain (Remote)"), `work_mode` (`Remote`/`Hybrid`/`Onsite`, parsed from the location suffix), `level` (one of the config's `levels`, or `Other`), `link` (the `/jobs/view/<id>/` URL), `glassdoor_rating`, `glassdoor_notes` (omit both if reusing a cached value — the backend fills them in from the cache), `match_score`, `match_notes` (from step 5b), `status: "Pending"`, `date_added` (today, ISO format). Do this via a small Python script using `urllib.request` (see prior conversation for the exact pattern) rather than one curl call per job. Posting a job that *does* include a `glassdoor_rating` writes/refreshes that company's cache entry automatically. The backend also auto-adds the company to the **Companies** tab if it's not already there (nothing to do here — no need to also `POST /api/companies` yourself).
 
 7. **Close out listings that stopped accepting applications.** `POST http://localhost:5001/api/jobs/refresh` (takes a few minutes; it fetches every link with a 0.3s delay, so run it with a long timeout or in the background). It moves `Pending`/`Interested` jobs whose LinkedIn page says "No longer accepting applications" / "Not currently accepting applications" to `Closed`, and leaves jobs you've acted on (Applied, Interviewing, Offer, Rejected, Discarded) alone. It returns `{"checked": N, "closed": M}`.
 
 8. **Restart the local Flask server** when done so the user is left with the app running: stop it (`pkill -f "app.py"` — the macOS process shows as `Python app.py`, so a `python3 app.py` pattern never matches), start it again (`(python3 app.py > /tmp/tracker_app.log 2>&1 &)`), and check `http://localhost:5001/` returns 200. Close any browser tabs opened for this task.
    - **Gotcha:** `PUT /api/jobs/<id>` replaces the whole record, it does not merge. To fix one field, send the full job object.
 
-9. **Report back**: total new listings added (with their match scores, highest first), how many existing jobs were backfilled with a score in step 5b (plus any backfilled job scoring ≥ 65), how many listings were closed in step 7, level breakdown (Senior/Staff), and any listings intentionally skipped that the user might expect to see (excluded companies, agency reposts, relocation-required, out-of-scope locations) so they can sanity-check the filtering.
+9. **Report back**: total new listings added (with their match scores, highest first), how many existing jobs were backfilled with a score in step 5b (plus any backfilled job scoring ≥ 65), how many listings were closed in step 7, level breakdown (by the config's `levels`), and any listings intentionally skipped that the user might expect to see (excluded companies, agency reposts, relocation-required, out-of-scope locations) so they can sanity-check the filtering.
 
 ## Why this can't be automated
 

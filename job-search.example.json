@@ -1,0 +1,45 @@
+{
+  "role": "Software Engineer",
+  "levels": [
+    "Senior"
+  ],
+  "level_equivalents": [
+    "Senior Developer",
+    "Senior Backend Engineer"
+  ],
+  "exclude_levels": [
+    "Staff",
+    "Principal"
+  ],
+  "keywords": [
+    "\"Senior Software Engineer\""
+  ],
+  "linkedin_location": "Spain",
+  "remote_regions": [
+    "Spain",
+    "EMEA",
+    "EU",
+    "EEA"
+  ],
+  "onsite_cities": [
+    "Barcelona"
+  ],
+  "exclude_employers": [
+    "NTT DATA",
+    "GFT Technologies",
+    "Indra Group",
+    "ALTEN",
+    "Robert Walters",
+    "K2 Partnering Solutions",
+    "Lawrence Harvey",
+    "Jobgether",
+    "Hire Feed"
+  ],
+  "exclude_postings": [
+    "relocation required",
+    "freelance, temporary or hourly contract",
+    "staffing-agency or recruiter reposts that hide the real employer",
+    "generalist IT consultancies / body-shops placing people with clients"
+  ],
+  "notes": "Core software engineering roles only. Skip embedded/firmware unless it overlaps distributed systems or backend work."
+}
