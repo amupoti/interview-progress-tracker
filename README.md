@@ -1,23 +1,28 @@
 # Interview Progress Tracker
 
+[![CI](https://github.com/amupoti/interview-progress-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/amupoti/interview-progress-tracker/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/amupoti/interview-progress-tracker/actions/workflows/codeql.yml/badge.svg)](https://github.com/amupoti/interview-progress-tracker/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A lightweight web app to track your software engineering job applications — built with Python/Flask and vanilla JS.
 
 ## Requirements
 
-- Python 3.8+
-- Flask
+- Python 3.10+ (CI tests 3.10–3.13)
 
 ## Setup
 
 ```bash
-# 1. Install Flask
-pip3 install flask
+# 1. Install dependencies
+pip install -r requirements.txt
 
 # 2. Run the app
-python3 app.py
+python app.py
 ```
 
 Then open **http://localhost:5001** in your browser.
+The server reloads when you change the code. For Flask's interactive debugger in the
+browser, run `FLASK_DEBUG=1 python app.py`.
 
 > **Note (macOS):** port 5000 is used by AirPlay Receiver on modern macOS, which returns
 > a `403 Forbidden` for unrelated requests — that's why this app defaults to 5001.
@@ -62,7 +67,7 @@ The Jobs tab tracks each listing from the moment you find it until it ends in an
 
 New listings land in the `Pending` status so you can review them in bulk and manually promote the ones worth pursuing to `Interested`.
 
-Every status change is recorded with its date in the job's `status_history`, which is what the **Pipeline** tab charts. The **🔄 Reload Offers** button marks listings whose LinkedIn posting has closed ("No longer accepting applications") as `Closed`, but only while they're still `Pending` or `Interested` — once you've applied, a closed posting doesn't touch the job.
+Every status change is recorded with its date in the job's `status_history`, which is what the **Pipeline** tab charts.
 
 ### How the LinkedIn/Glassdoor data gets in
 
@@ -76,8 +81,6 @@ Listings are gathered as a manual research pass: an AI assistant (or you, by han
 
 This can't be automated via a button in the app or a scheduled job — LinkedIn blocks unauthenticated server-side requests to its search endpoints outright, and a scheduled/cloud agent has no access to your logged-in browser session either. The only thing that works is a live AI coding session (e.g. Claude Code) driving your actual browser, triggered by you when you want a refresh.
 
-The **🔍 Search LinkedIn** button is a shortcut for browsing that search yourself: it opens a new tab with a LinkedIn job search for the configured `keywords` (OR-ed together) in `linkedin_location`, sorted by most recent. It doesn't fetch or add anything itself.
-
 ### Configuring your search
 
 What to search for lives in `job-search.json` at the repo root. It's gitignored, so each person keeps their own. Start from the committed template:
@@ -86,7 +89,7 @@ What to search for lives in `job-search.json` at the repo root. It's gitignored,
 cp job-search.example.json job-search.json
 ```
 
-Then edit the role, levels, keywords, locations and excluded employers. The app serves the file at `GET /api/search-config` and uses it for the level dropdowns and the Search LinkedIn button. It falls back to the example file if you haven't made your own. If the file is missing when you run the skill below, Claude asks you for the basics and writes it for you.
+Then edit the role, levels, keywords, locations and excluded employers. The app serves the file at `GET /api/search-config` and uses it for the level dropdowns. It falls back to the example file if you haven't made your own. If the file is missing when you run the skill below, Claude asks you for the basics and writes it for you.
 
 **A Claude Code skill is what actually does the gathering.** It's checked into this repo at `.claude/skills/update-jobs/SKILL.md`, so it's available to anyone who clones the repo and opens it in Claude Code — no setup beyond having the browser-automation tool (Claude in Chrome) connected. To use it, ask Claude to update/refresh the job list; it will:
 
@@ -100,14 +103,30 @@ See the skill file itself for the exact method, selectors, and edge cases it's a
 ## Project structure
 
 ```
-interviewProgress/
+interview-progress-tracker/
 ├── app.py               # Flask backend (REST API)
+├── storage.py           # SQLite persistence
 ├── data/
-│   ├── tracker.db        # Persisted mutable data (auto-created)
+│   ├── tracker.db        # Persisted mutable data (auto-created, gitignored)
 │   └── *.json            # Read-only catalogs and legacy import files
 ├── static/
 │   ├── app.js           # Frontend logic
 │   └── style.css        # Styles
-└── templates/
-    └── index.html       # HTML layout
+├── templates/
+│   └── index.html       # HTML layout
+└── tests/               # API tests; tests/e2e has the Playwright UI tests
 ```
+
+## Development
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and the checks CI runs. In short:
+
+```bash
+pip install -r requirements-dev.txt
+playwright install chromium
+pre-commit install   # lint and format on every commit
+pytest               # API + UI tests, with backend and frontend coverage gates
+```
+
+Tests never touch your real data: every test gets its own temporary database,
+and the run aborts if anything opens a database inside the repo.

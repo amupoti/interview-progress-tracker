@@ -17,6 +17,10 @@ data/interviews.json
 data/practice.json
 data/system_design.json
 data/challenges_progress.json
+data/recruiter_practice.json
+data/jobs.json
+data/companies.json
+data/glassdoor_cache.json
 # CV/resume (any file name)
 data/*.pdf
 data/*.docx
@@ -26,3 +30,11 @@ job-search.json
 
 # Claude Code local runtime state (skills under .claude/skills/ are tracked)
 .claude/scheduled_tasks.lock
+
+# Test and coverage output
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+test-results/
+coverage-js.lcov

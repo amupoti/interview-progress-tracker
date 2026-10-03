@@ -6,7 +6,9 @@ import urllib.error
 import urllib.request
 import uuid
 from datetime import date, timedelta
-from flask import Flask, jsonify, request, render_template
+
+from flask import Flask, jsonify, render_template, request
+
 from storage import load_state, save_state
 
 app = Flask(__name__)
@@ -25,13 +27,16 @@ UNTOUCHED_JOB_STATUSES = ("Pending", "Interested")
 def check_job_link_closed(url):
     """Return True if the LinkedIn job posting at url is closed (no longer accepting applications),
     False if it looks open, or None if it couldn't be checked."""
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    if not url.lower().startswith(("http://", "https://")):
+        return None
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})  # noqa: S310 - scheme checked above
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=10) as resp:  # noqa: S310 - scheme checked above
             html = resp.read().decode("utf-8", errors="ignore")
     except (urllib.error.URLError, OSError, ValueError):
         return None
     return any(marker in html for marker in CLOSED_JOB_MARKERS)
+
 
 DATABASE_FILE = os.path.join(os.path.dirname(__file__), "data", "tracker.db")
 QUESTIONS_FILE = os.path.join(os.path.dirname(__file__), "data", "questions.json")
@@ -62,9 +67,7 @@ def save_practice(data):
 
 
 def load_system_design():
-    return load_state(
-        DATABASE_FILE, "system_design", {"exercises": []}, SYSTEM_DESIGN_FILE
-    )
+    return load_state(DATABASE_FILE, "system_design", {"exercises": []}, SYSTEM_DESIGN_FILE)
 
 
 def save_system_design(data):
@@ -168,16 +171,18 @@ def ensure_company_exists(entry):
     data = load_companies()
     if any((c.get("company_name") or "").strip().lower() == company_key for c in data["companies"]):
         return
-    data["companies"].append({
-        "id": str(uuid.uuid4()),
-        "company_name": company_name,
-        "url": "",
-        "industry": "",
-        "location": entry.get("location", ""),
-        "interest_level": None,
-        "benefits": "",
-        "notes": "",
-    })
+    data["companies"].append(
+        {
+            "id": str(uuid.uuid4()),
+            "company_name": company_name,
+            "url": "",
+            "industry": "",
+            "location": entry.get("location", ""),
+            "interest_level": None,
+            "benefits": "",
+            "notes": "",
+        }
+    )
     save_companies(data)
 
 
@@ -188,8 +193,7 @@ def normalize_company(name):
 def is_company_excluded(name):
     key = normalize_company(name)
     return bool(key) and any(
-        c.get("excluded") and normalize_company(c.get("company_name")) == key
-        for c in load_companies()["companies"]
+        c.get("excluded") and normalize_company(c.get("company_name")) == key for c in load_companies()["companies"]
     )
 
 
@@ -284,7 +288,7 @@ def practice_today():
     practice = load_practice()
     today = date.today().isoformat()
 
-    rng = _random.Random(int(date.today().strftime("%Y%m%d")))
+    rng = _random.Random(int(date.today().strftime("%Y%m%d")))  # noqa: S311 - picks practice questions, not security
     all_ids = [q["id"] for q in questions]
     selected_ids = rng.sample(all_ids, 3)
 
@@ -298,11 +302,13 @@ def practice_today():
     selected_questions = [q_map[qid] for qid in selected_ids if qid in q_map]
     completed = practice["history"][today].get("completed", [])
 
-    return jsonify({
-        "questions": selected_questions,
-        "completed": completed,
-        "streak": compute_streak(practice["history"]),
-    })
+    return jsonify(
+        {
+            "questions": selected_questions,
+            "completed": completed,
+            "streak": compute_streak(practice["history"]),
+        }
+    )
 
 
 @app.route("/api/practice/complete", methods=["POST"])
@@ -332,20 +338,22 @@ def practice_progress():
         d = today - timedelta(days=i)
         key = d.isoformat()
         day_data = practice["history"].get(key, {})
-        calendar.append({
-            "date": key,
-            "completed": len(day_data.get("completed", [])),
-            "total": len(day_data.get("questions", [])) or 3,
-        })
+        calendar.append(
+            {
+                "date": key,
+                "completed": len(day_data.get("completed", [])),
+                "total": len(day_data.get("questions", [])) or 3,
+            }
+        )
 
-    total_completed = sum(
-        len(v.get("completed", [])) for v in practice["history"].values()
+    total_completed = sum(len(v.get("completed", [])) for v in practice["history"].values())
+    return jsonify(
+        {
+            "calendar": calendar,
+            "streak": compute_streak(practice["history"]),
+            "total_completed": total_completed,
+        }
     )
-    return jsonify({
-        "calendar": calendar,
-        "streak": compute_streak(practice["history"]),
-        "total_completed": total_completed,
-    })
 
 
 @app.route("/api/progress", methods=["GET"])
@@ -364,41 +372,38 @@ def combined_progress():
         sd_count = sum(1 for e in sd_data["exercises"] if e.get("date") == key)
         ch_count = sum(1 for v in ch_progress["completed"].values() if v == key)
         rq_count = len(rq_practice["history"].get(key, {}).get("completed", []))
-        calendar.append({
-            "date": key,
-            "questions_completed": len(day_data.get("completed", [])),
-            "questions_total": len(day_data.get("questions", [])) or 3,
-            "sd_count": sd_count,
-            "ch_count": ch_count,
-            "rq_count": rq_count,
-        })
+        calendar.append(
+            {
+                "date": key,
+                "questions_completed": len(day_data.get("completed", [])),
+                "questions_total": len(day_data.get("questions", [])) or 3,
+                "sd_count": sd_count,
+                "ch_count": ch_count,
+                "rq_count": rq_count,
+            }
+        )
 
-    total_questions = sum(
-        len(v.get("completed", [])) for v in practice["history"].values()
-    )
-    total_rq = sum(
-        len(v.get("completed", [])) for v in rq_practice["history"].values()
-    )
+    total_questions = sum(len(v.get("completed", [])) for v in practice["history"].values())
+    total_rq = sum(len(v.get("completed", [])) for v in rq_practice["history"].values())
     week_ago = today - timedelta(days=7)
-    sd_this_week = sum(
-        1 for e in sd_data["exercises"]
-        if e.get("date") and date.fromisoformat(e["date"]) >= week_ago
-    )
+    sd_this_week = sum(1 for e in sd_data["exercises"] if e.get("date") and date.fromisoformat(e["date"]) >= week_ago)
 
     challenges_done = len(ch_progress["completed"])
     challenges_total = len(load_challenges())
 
-    return jsonify({
-        "streak": compute_streak(practice["history"]),
-        "rq_streak": compute_streak(rq_practice["history"]),
-        "total_questions": total_questions,
-        "total_rq": total_rq,
-        "total_sd": len(sd_data["exercises"]),
-        "sd_this_week": sd_this_week,
-        "challenges_done": challenges_done,
-        "challenges_total": challenges_total,
-        "calendar": calendar,
-    })
+    return jsonify(
+        {
+            "streak": compute_streak(practice["history"]),
+            "rq_streak": compute_streak(rq_practice["history"]),
+            "total_questions": total_questions,
+            "total_rq": total_rq,
+            "total_sd": len(sd_data["exercises"]),
+            "sd_this_week": sd_this_week,
+            "challenges_done": challenges_done,
+            "challenges_total": challenges_total,
+            "calendar": calendar,
+        }
+    )
 
 
 @app.route("/api/challenges", methods=["GET"])
@@ -433,7 +438,7 @@ def recruiter_today():
     practice = load_recruiter_practice()
     today = date.today().isoformat()
 
-    rng = _random.Random(int(date.today().strftime("%Y%m%d")) + 1)
+    rng = _random.Random(int(date.today().strftime("%Y%m%d")) + 1)  # noqa: S311 - picks practice questions, not security
     all_ids = [q["id"] for q in questions]
     selected_ids = rng.sample(all_ids, 5)
 
@@ -447,11 +452,13 @@ def recruiter_today():
     selected_questions = [q_map[qid] for qid in selected_ids if qid in q_map]
     completed = practice["history"][today].get("completed", [])
 
-    return jsonify({
-        "questions": selected_questions,
-        "completed": completed,
-        "streak": compute_streak(practice["history"]),
-    })
+    return jsonify(
+        {
+            "questions": selected_questions,
+            "completed": completed,
+            "streak": compute_streak(practice["history"]),
+        }
+    )
 
 
 @app.route("/api/recruiter/complete", methods=["POST"])
@@ -670,5 +677,8 @@ def refresh_jobs():
     return jsonify({"checked": checked, "closed": closed})
 
 
-if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+if __name__ == "__main__":  # pragma: no cover
+    # Reload on code and template changes. The interactive debugger can run arbitrary
+    # code from the browser, so it is opt-in: FLASK_DEBUG=1 python app.py
+    app.config["TEMPLATES_AUTO_RELOAD"] = True
+    app.run(port=5001, use_reloader=True, debug=os.environ.get("FLASK_DEBUG") == "1")

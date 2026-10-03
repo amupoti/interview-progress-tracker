@@ -1,0 +1,40 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "files": {
+    "includes": ["static/**"]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 120
+  },
+  "javascript": {
+    "formatter": { "quoteStyle": "single", "arrowParentheses": "asNeeded", "quoteProperties": "preserve" }
+  },
+  "css": {
+    // style.css uses compact one-line rules on purpose; lint it, don't reformat it.
+    "formatter": { "enabled": false }
+  },
+  "linter": {
+    "rules": { "preset": "recommended" }
+  },
+  "overrides": [
+    {
+      // app.js is a classic script: many functions are only called from inline
+      // onclick handlers, which Biome can't see. Its auto-fix would rename them
+      // and break the UI.
+      "includes": ["static/app.js"],
+      "linter": {
+        "rules": { "correctness": { "noUnusedVariables": "off" } }
+      }
+    },
+    {
+      // Flags source-order between unrelated selectors (e.g. row opacity in
+      // different tables). Reordering hand-written CSS for it risks visual changes.
+      "includes": ["static/style.css"],
+      "linter": {
+        "rules": { "style": { "noDescendingSpecificity": "off" } }
+      }
+    }
+  ]
+}
