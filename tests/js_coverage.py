@@ -5,6 +5,7 @@ Results are merged across tests, reported next to pytest-cov's table, written
 to coverage-js.lcov, and checked against --js-cov-fail-under.
 """
 
+import os
 import re
 from pathlib import Path
 
@@ -120,6 +121,11 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     tr.write_line(
         f"{'static/app.js':<16}{len(lines):>7}{len(lines) - hit:>7}{percent:>7.0f}%   {missing_ranges(lines)}"
     )
+    summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary:
+        with open(summary, "a") as f:
+            f.write("| Frontend | Lines | Miss | Cover |\n|---|--:|--:|--:|\n")
+            f.write(f"| static/app.js | {len(lines)} | {len(lines) - hit} | {percent:.0f}% |\n\n")
     threshold = config.getoption("--js-cov-fail-under")
     if threshold:
         if percent < threshold:
