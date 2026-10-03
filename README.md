@@ -62,7 +62,7 @@ The Jobs tab tracks each listing from the moment you find it until it ends in an
 
 New listings land in the `Pending` status so you can review them in bulk and manually promote the ones worth pursuing to `Interested`.
 
-Every status change is recorded with its date in the job's `status_history`, which is what the **Pipeline** tab charts. The **🔄 Reload Offers** button marks listings whose LinkedIn posting has closed ("No longer accepting applications") as `Closed`, but only while they're still `Pending` or `Interested` — once you've applied, a closed posting doesn't touch the job.
+Every status change is recorded with its date in the job's `status_history`, which is what the **Pipeline** tab charts.
 
 ### How the LinkedIn/Glassdoor data gets in
 
@@ -76,8 +76,6 @@ Listings are gathered as a manual research pass: an AI assistant (or you, by han
 
 This can't be automated via a button in the app or a scheduled job — LinkedIn blocks unauthenticated server-side requests to its search endpoints outright, and a scheduled/cloud agent has no access to your logged-in browser session either. The only thing that works is a live AI coding session (e.g. Claude Code) driving your actual browser, triggered by you when you want a refresh.
 
-The **🔍 Search LinkedIn** button is a shortcut for browsing that search yourself: it opens a new tab with a LinkedIn job search for the configured `keywords` (OR-ed together) in `linkedin_location`, sorted by most recent. It doesn't fetch or add anything itself.
-
 ### Configuring your search
 
 What to search for lives in `job-search.json` at the repo root. It's gitignored, so each person keeps their own. Start from the committed template:
@@ -86,7 +84,7 @@ What to search for lives in `job-search.json` at the repo root. It's gitignored,
 cp job-search.example.json job-search.json
 ```
 
-Then edit the role, levels, keywords, locations and excluded employers. The app serves the file at `GET /api/search-config` and uses it for the level dropdowns and the Search LinkedIn button. It falls back to the example file if you haven't made your own. If the file is missing when you run the skill below, Claude asks you for the basics and writes it for you.
+Then edit the role, levels, keywords, locations and excluded employers. The app serves the file at `GET /api/search-config` and uses it for the level dropdowns. It falls back to the example file if you haven't made your own. If the file is missing when you run the skill below, Claude asks you for the basics and writes it for you.
 
 **A Claude Code skill is what actually does the gathering.** It's checked into this repo at `.claude/skills/update-jobs/SKILL.md`, so it's available to anyone who clones the repo and opens it in Claude Code — no setup beyond having the browser-automation tool (Claude in Chrome) connected. To use it, ask Claude to update/refresh the job list; it will:
 

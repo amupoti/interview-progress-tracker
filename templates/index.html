@@ -237,8 +237,6 @@
 
       <div class="toolbar">
         <button id="btn-add-job" class="btn btn-primary">+ Add Job</button>
-        <button id="btn-search-linkedin" class="btn btn-secondary">🔍 Search LinkedIn</button>
-        <button id="btn-reload-jobs" class="btn btn-secondary">🔄 Reload Offers</button>
         <input type="text" id="jobs-search" placeholder="Search company, title, location…" />
         <select id="jobs-work-mode-filter">
           <option value="">All work modes</option>
@@ -250,7 +248,17 @@
           <option value="">All levels</option>
           <option value="Other">Other</option>
         </select>
-        <span id="jobs-reload-status" class="reload-status"></span>
+        <select id="jobs-status-filter">
+          <option value="">All statuses</option>
+          <option value="Pending">Pending</option>
+          <option value="Interested">Interested</option>
+          <option value="Applied">Applied</option>
+          <option value="Interviewing">Interviewing</option>
+          <option value="Offer">Offer</option>
+          <option value="Rejected">Rejected</option>
+          <option value="Discarded">Discarded</option>
+          <option value="Closed">Closed</option>
+        </select>
         <span id="jobs-count" class="jobs-count"></span>
       </div>
 

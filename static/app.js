@@ -103,8 +103,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Jobs
   document.getElementById('btn-add-job').addEventListener('click', jobsOpenAdd);
-  document.getElementById('btn-reload-jobs').addEventListener('click', jobsReload);
-  document.getElementById('btn-search-linkedin').addEventListener('click', jobsSearchLinkedIn);
   document.getElementById('jobs-btn-cancel').addEventListener('click', jobsCloseModal);
   document.getElementById('jobs-modal-close').addEventListener('click', jobsCloseModal);
   document.getElementById('jobs-modal-overlay').addEventListener('click', e => {
@@ -115,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('jobs-search').addEventListener('input', jobsRender);
   document.getElementById('jobs-work-mode-filter').addEventListener('change', jobsFilterChanged);
   document.getElementById('jobs-level-filter').addEventListener('change', jobsFilterChanged);
+  document.getElementById('jobs-status-filter').addEventListener('change', jobsFilterChanged);
   document.querySelectorAll('#jobs-table th[data-col]').forEach(th => {
     th.addEventListener('click', () => {
       const col = th.dataset.col;
@@ -893,7 +892,7 @@ function jobsRenderUpcoming() {
   `).join('');
 }
 
-/* Levels and LinkedIn search terms come from job-search.json (see README). */
+/* Levels come from job-search.json (see README). */
 async function loadSearchConfig() {
   const res = await fetch('/api/search-config');
   searchConfig = await res.json();
@@ -912,10 +911,11 @@ function ensureLevelOption(select, level) {
   }
 }
 
-/* Work mode and level filters live in the query string so filtered views can be bookmarked. */
+/* Work mode, level and status filters live in the query string so filtered views can be bookmarked. */
 const JOBS_URL_FILTERS = {
   work_mode: 'jobs-work-mode-filter',
   level:     'jobs-level-filter',
+  status:    'jobs-status-filter',
 };
 
 function jobsApplyUrlFilters() {
@@ -939,30 +939,6 @@ function jobsFilterChanged() {
   const query = params.toString();
   history.replaceState(null, '', location.pathname + (query ? '?' + query : '') + location.hash);
   jobsRender();
-}
-
-function jobsSearchLinkedIn() {
-  const keywords = (searchConfig?.keywords || []).join(' OR ');
-  const location = searchConfig?.linkedin_location || '';
-  const url = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent(location)}&sortBy=DD`;
-  window.open(url, '_blank', 'noopener');
-}
-
-async function jobsReload() {
-  const btn = document.getElementById('btn-reload-jobs');
-  const statusEl = document.getElementById('jobs-reload-status');
-  btn.disabled = true;
-  statusEl.textContent = 'Checking listings…';
-  try {
-    const res = await fetch('/api/jobs/refresh', { method: 'POST' });
-    const result = await res.json();
-    await jobsFetchJobs();
-    statusEl.textContent = `Checked ${result.checked}, marked ${result.closed} as closed.`;
-  } catch (err) {
-    statusEl.textContent = 'Reload failed — check the server log.';
-  } finally {
-    btn.disabled = false;
-  }
 }
 
 function jobContacts(j) {
@@ -1007,10 +983,12 @@ function jobsRender() {
   const search = document.getElementById('jobs-search').value.toLowerCase();
   const workModeFilter = document.getElementById('jobs-work-mode-filter').value;
   const levelFilter = document.getElementById('jobs-level-filter').value;
+  const statusFilter = document.getElementById('jobs-status-filter').value;
 
   const rows = jobs.filter(j => {
     if (workModeFilter && j.work_mode !== workModeFilter) return false;
     if (levelFilter && j.level !== levelFilter) return false;
+    if (statusFilter && (j.status || 'Pending') !== statusFilter) return false;
     if (!search) return true;
     const contactText = jobContacts(j).map(p => p.name).join(' ');
     const haystack = `${j.company || ''} ${j.title || ''} ${j.location || ''} ${j.level || ''} ${j.notes || ''} ${j.glassdoor_notes || ''} ${contactText}`.toLowerCase();
