@@ -1,20 +1,23 @@
 # Interview Progress Tracker
 
+[![CI](https://github.com/amupoti/interview-progress-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/amupoti/interview-progress-tracker/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/amupoti/interview-progress-tracker/actions/workflows/codeql.yml/badge.svg)](https://github.com/amupoti/interview-progress-tracker/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A lightweight web app to track your software engineering job applications — built with Python/Flask and vanilla JS.
 
 ## Requirements
 
-- Python 3.8+
-- Flask
+- Python 3.10+ (CI tests 3.10–3.13)
 
 ## Setup
 
 ```bash
-# 1. Install Flask
-pip3 install flask
+# 1. Install dependencies
+pip install -r requirements.txt
 
 # 2. Run the app
-python3 app.py
+python app.py
 ```
 
 Then open **http://localhost:5001** in your browser.
@@ -98,14 +101,31 @@ See the skill file itself for the exact method, selectors, and edge cases it's a
 ## Project structure
 
 ```
-interviewProgress/
+interview-progress-tracker/
 ├── app.py               # Flask backend (REST API)
+├── storage.py           # SQLite persistence
 ├── data/
-│   ├── tracker.db        # Persisted mutable data (auto-created)
+│   ├── tracker.db        # Persisted mutable data (auto-created, gitignored)
 │   └── *.json            # Read-only catalogs and legacy import files
 ├── static/
 │   ├── app.js           # Frontend logic
 │   └── style.css        # Styles
-└── templates/
-    └── index.html       # HTML layout
+├── templates/
+│   └── index.html       # HTML layout
+├── tests/               # API tests; tests/e2e has the Playwright UI tests
+└── docs/quality-plan.html  # How the project is tested and checked
 ```
+
+## Development
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and the checks CI runs. In short:
+
+```bash
+pip install -r requirements-dev.txt
+playwright install chromium
+pre-commit install   # lint and format on every commit
+pytest               # API + UI tests, with backend and frontend coverage gates
+```
+
+Tests never touch your real data: every test gets its own temporary database,
+and the run aborts if anything opens a database inside the repo.
