@@ -8,6 +8,7 @@ from app import compute_streak
 
 # ── compute_streak ────────────────────────────────────────────────────────────
 
+
 def test_streak_empty():
     assert compute_streak({}) == 0
 
@@ -20,7 +21,7 @@ def test_streak_today_only():
 def test_streak_three_consecutive_days():
     today = date.today()
     history = {
-        today.isoformat():                      {"completed": [1]},
+        today.isoformat(): {"completed": [1]},
         (today - timedelta(days=1)).isoformat(): {"completed": [2]},
         (today - timedelta(days=2)).isoformat(): {"completed": [3]},
     }
@@ -30,7 +31,7 @@ def test_streak_three_consecutive_days():
 def test_streak_one_day_gap_allowed():
     today = date.today()
     history = {
-        today.isoformat():                      {"completed": [1]},
+        today.isoformat(): {"completed": [1]},
         # yesterday missing — allowed skip
         (today - timedelta(days=2)).isoformat(): {"completed": [3]},
     }
@@ -40,7 +41,7 @@ def test_streak_one_day_gap_allowed():
 def test_streak_two_day_gap_breaks():
     today = date.today()
     history = {
-        today.isoformat():                      {"completed": [1]},
+        today.isoformat(): {"completed": [1]},
         # yesterday and day-before missing
         (today - timedelta(days=3)).isoformat(): {"completed": [3]},
     }
@@ -48,6 +49,7 @@ def test_streak_two_day_gap_breaks():
 
 
 # ── Behavioral practice ───────────────────────────────────────────────────────
+
 
 def test_practice_today_returns_three_questions(client):
     res = client.get("/api/practice/today")
@@ -59,7 +61,7 @@ def test_practice_today_returns_three_questions(client):
 
 
 def test_practice_today_deterministic(client):
-    ids_first  = [q["id"] for q in client.get("/api/practice/today").get_json()["questions"]]
+    ids_first = [q["id"] for q in client.get("/api/practice/today").get_json()["questions"]]
     ids_second = [q["id"] for q in client.get("/api/practice/today").get_json()["questions"]]
     assert ids_first == ids_second
 
@@ -92,12 +94,22 @@ def test_practice_progress_has_seven_days(client):
 
 # ── Combined progress ─────────────────────────────────────────────────────────
 
+
 def test_combined_progress_shape(client):
     res = client.get("/api/progress")
     assert res.status_code == 200
     data = res.get_json()
-    for key in ("streak", "rq_streak", "total_questions", "total_rq",
-                "total_sd", "sd_this_week", "challenges_done", "challenges_total", "calendar"):
+    for key in (
+        "streak",
+        "rq_streak",
+        "total_questions",
+        "total_rq",
+        "total_sd",
+        "sd_this_week",
+        "challenges_done",
+        "challenges_total",
+        "calendar",
+    ):
         assert key in data
     assert len(data["calendar"]) == 7
 
@@ -108,6 +120,7 @@ def test_combined_progress_calendar_has_rq_count(client):
 
 
 # ── Challenges ────────────────────────────────────────────────────────────────
+
 
 def test_list_challenges_has_done_field(client):
     res = client.get("/api/challenges")
@@ -145,6 +158,7 @@ def test_toggle_challenge_reflected_in_list(client):
 
 # ── Recruiter practice ────────────────────────────────────────────────────────
 
+
 def test_recruiter_today_returns_five_questions(client):
     res = client.get("/api/recruiter/today")
     assert res.status_code == 200
@@ -155,7 +169,7 @@ def test_recruiter_today_returns_five_questions(client):
 
 
 def test_recruiter_today_deterministic(client):
-    ids_first  = [q["id"] for q in client.get("/api/recruiter/today").get_json()["questions"]]
+    ids_first = [q["id"] for q in client.get("/api/recruiter/today").get_json()["questions"]]
     ids_second = [q["id"] for q in client.get("/api/recruiter/today").get_json()["questions"]]
     assert ids_first == ids_second
 
@@ -178,6 +192,7 @@ def test_recruiter_reset_clears_completed(client):
 
 
 # ── System design ─────────────────────────────────────────────────────────────
+
 
 def test_list_system_design_empty(client):
     res = client.get("/api/system-design")
@@ -226,6 +241,7 @@ def test_delete_system_design_not_found(client):
 
 
 # ── Companies of interest ─────────────────────────────────────────────────────
+
 
 def test_list_companies_empty(client):
     res = client.get("/api/companies")
@@ -338,6 +354,7 @@ def test_update_company_to_excluded_discards_jobs(client):
 
 # ── Jobs ───────────────────────────────────────────────────────────────────
 
+
 def test_list_jobs_empty(client):
     res = client.get("/api/jobs")
     assert res.status_code == 200
@@ -404,12 +421,15 @@ def test_glassdoor_cache_empty_by_default(client):
 
 
 def test_create_job_populates_glassdoor_cache(client):
-    client.post("/api/jobs", json={
-        "company": "Acme",
-        "title": "Staff SWE",
-        "glassdoor_rating": 4.2,
-        "glassdoor_notes": "Good WLB",
-    })
+    client.post(
+        "/api/jobs",
+        json={
+            "company": "Acme",
+            "title": "Staff SWE",
+            "glassdoor_rating": 4.2,
+            "glassdoor_notes": "Good WLB",
+        },
+    )
     cache = client.get("/api/glassdoor-cache").get_json()
     assert cache["acme"]["glassdoor_rating"] == 4.2
     assert cache["acme"]["glassdoor_notes"] == "Good WLB"
@@ -417,12 +437,15 @@ def test_create_job_populates_glassdoor_cache(client):
 
 
 def test_create_job_reuses_cached_glassdoor_rating(client):
-    client.post("/api/jobs", json={
-        "company": "Acme",
-        "title": "Staff SWE",
-        "glassdoor_rating": 4.2,
-        "glassdoor_notes": "Good WLB",
-    })
+    client.post(
+        "/api/jobs",
+        json={
+            "company": "Acme",
+            "title": "Staff SWE",
+            "glassdoor_rating": 4.2,
+            "glassdoor_notes": "Good WLB",
+        },
+    )
     res = client.post("/api/jobs", json={"company": "acme", "title": "Senior SWE"})
     data = res.get_json()
     assert data["glassdoor_rating"] == 4.2
@@ -438,12 +461,15 @@ def test_create_job_without_rating_or_cache_leaves_fields_unset(client):
 
 def test_update_job_refreshes_glassdoor_cache(client):
     created = client.post("/api/jobs", json={"company": "Acme", "title": "Staff SWE"}).get_json()
-    client.put(f"/api/jobs/{created['id']}", json={
-        "company": "Acme",
-        "title": "Staff SWE",
-        "glassdoor_rating": 3.9,
-        "glassdoor_notes": "Updated review",
-    })
+    client.put(
+        f"/api/jobs/{created['id']}",
+        json={
+            "company": "Acme",
+            "title": "Staff SWE",
+            "glassdoor_rating": 3.9,
+            "glassdoor_notes": "Updated review",
+        },
+    )
     cache = client.get("/api/glassdoor-cache").get_json()
     assert cache["acme"]["glassdoor_rating"] == 3.9
 
@@ -482,9 +508,7 @@ def test_refresh_jobs_marks_closed_as_closed(client, monkeypatch):
         json={"company": "Globex", "title": "Staff SWE", "link": "https://example.com/closed"},
     ).get_json()
 
-    monkeypatch.setattr(
-        app_module, "check_job_link_closed", lambda url: url == "https://example.com/closed"
-    )
+    monkeypatch.setattr(app_module, "check_job_link_closed", lambda url: url == "https://example.com/closed")
 
     res = client.post("/api/jobs/refresh")
     assert res.status_code == 200
@@ -529,7 +553,6 @@ def test_refresh_jobs_skips_already_closed(client, monkeypatch):
     assert calls == []
 
 
-
 def test_refresh_jobs_keeps_jobs_already_in_progress(client, monkeypatch):
     monkeypatch.setattr(app_module.time, "sleep", lambda s: None)
     for status in ("Applied", "Interviewing", "Offer", "Rejected", "Discarded"):
@@ -543,7 +566,9 @@ def test_refresh_jobs_keeps_jobs_already_in_progress(client, monkeypatch):
     assert calls == []
     assert "Closed" not in {j["status"] for j in client.get("/api/jobs").get_json()}
 
+
 # ── Challenges progress migration ─────────────────────────────────────────────
+
 
 def test_challenges_progress_migrates_list_format(tmp_data):
     legacy = {"completed": [1, 2, 3]}
@@ -567,9 +592,7 @@ def test_data_is_saved_in_sqlite(tmp_data):
     app_module.save_jobs({"jobs": [{"id": "1", "company": "Acme"}]})
 
     with sqlite3.connect(tmp_data / "tracker.db") as connection:
-        row = connection.execute(
-            "SELECT value FROM app_state WHERE key = 'jobs'"
-        ).fetchone()
+        row = connection.execute("SELECT value FROM app_state WHERE key = 'jobs'").fetchone()
 
     assert json.loads(row[0]) == {"jobs": [{"id": "1", "company": "Acme"}]}
 
@@ -590,9 +613,14 @@ def test_update_job_appends_status_change(client):
 
 def test_update_job_ignores_client_sent_history(client):
     created = client.post("/api/jobs", json={"company": "Acme"}).get_json()
-    res = client.put(f"/api/jobs/{created['id']}", json={
-        "company": "Acme", "status": "Pending", "status_history": [{"status": "Offer", "date": "2026-01-01"}],
-    })
+    res = client.put(
+        f"/api/jobs/{created['id']}",
+        json={
+            "company": "Acme",
+            "status": "Pending",
+            "status_history": [{"status": "Offer", "date": "2026-01-01"}],
+        },
+    )
     assert [h["status"] for h in res.get_json()["status_history"]] == ["Pending"]
 
 
@@ -614,16 +642,28 @@ def test_update_job_keeps_contacts(client):
 
 
 def test_list_jobs_moves_company_contacts_onto_jobs(client):
-    app_module.save_companies({"companies": [
-        {"id": "c1", "company_name": "Acme", "contacts": [{"name": "Jo", "title": "", "email": ""}, {"name": ""}]},
-        {"id": "c2", "company_name": "Globex", "contacts": []},
-    ]})
-    app_module.save_jobs({"jobs": [
-        {"id": "1", "company": "Acme"},
-        {"id": "2", "company": " acme "},
-        {"id": "3", "company": "Acme", "contacts": [{"name": "Own"}]},
-        {"id": "4", "company": "Globex"},
-    ]})
+    app_module.save_companies(
+        {
+            "companies": [
+                {
+                    "id": "c1",
+                    "company_name": "Acme",
+                    "contacts": [{"name": "Jo", "title": "", "email": ""}, {"name": ""}],
+                },
+                {"id": "c2", "company_name": "Globex", "contacts": []},
+            ]
+        }
+    )
+    app_module.save_jobs(
+        {
+            "jobs": [
+                {"id": "1", "company": "Acme"},
+                {"id": "2", "company": " acme "},
+                {"id": "3", "company": "Acme", "contacts": [{"name": "Own"}]},
+                {"id": "4", "company": "Globex"},
+            ]
+        }
+    )
     for _ in range(2):
         jobs = {j["id"]: j for j in client.get("/api/jobs").get_json()}
         assert jobs["1"]["contacts"] == [{"name": "Jo", "title": "", "email": ""}]
@@ -661,6 +701,7 @@ def test_check_job_link_closed_detects_both_linkedin_wordings(monkeypatch):
 
 
 # ── Search config ─────────────────────────────────────────────────────────────
+
 
 def test_search_config_falls_back_to_example(client, tmp_path, monkeypatch):
     monkeypatch.setattr(app_module, "SEARCH_CONFIG_FILE", str(tmp_path / "missing.json"))

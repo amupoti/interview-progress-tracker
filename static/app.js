@@ -29,14 +29,14 @@ let jobsSortDir = 'asc';
 let searchConfig = null;
 
 const JOB_STATUS_BADGE = {
-  'Pending':      'badge-pending',
-  'Interested':   'badge-interested',
-  'Applied':      'badge-applied',
+  'Pending': 'badge-pending',
+  'Interested': 'badge-interested',
+  'Applied': 'badge-applied',
   'Interviewing': 'badge-interviewing',
-  'Offer':        'badge-offer',
-  'Rejected':     'badge-rejected',
-  'Discarded':    'badge-discarded',
-  'Closed':      'badge-closed',
+  'Offer': 'badge-offer',
+  'Rejected': 'badge-rejected',
+  'Discarded': 'badge-discarded',
+  'Closed': 'badge-closed',
 };
 
 const WORK_MODE_BADGE = {
@@ -47,7 +47,7 @@ const WORK_MODE_BADGE = {
 
 const JOB_LEVEL_BADGE = {
   'Senior': 'badge-senior',
-  'Staff':  'badge-staff',
+  'Staff': 'badge-staff',
 };
 
 /* ── Init ── */
@@ -131,11 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ── Helpers ── */
 function esc(str) {
   if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function formatDate(iso) {
@@ -233,12 +229,16 @@ function renderQuestions() {
     <div class="questions-list">
       ${questions.map((q, i) => questionCardHTML(q, i, completed)).join('')}
     </div>
-    ${allDone ? `
+    ${
+      allDone
+        ? `
       <div class="all-done-msg">
         <span class="all-done-emoji">🎉</span>
         <h3>All done for today!</h3>
         <p>Great work. Come back tomorrow for 3 new questions and keep the streak going.</p>
-      </div>` : ''}
+      </div>`
+        : ''
+    }
   `;
 }
 
@@ -300,8 +300,7 @@ async function loadProgress() {
   document.getElementById('prog-total-q').textContent = data.total_questions;
   document.getElementById('prog-total-sd').textContent = data.total_sd;
   document.getElementById('prog-sd-week').textContent = data.sd_this_week;
-  document.getElementById('prog-challenges').textContent =
-    `${data.challenges_done}/${data.challenges_total}`;
+  document.getElementById('prog-challenges').textContent = `${data.challenges_done}/${data.challenges_total}`;
   document.getElementById('prog-rq-streak').textContent = data.rq_streak;
   document.getElementById('prog-total-rq').textContent = data.total_rq;
   renderCombinedCalendar(data.calendar);
@@ -321,7 +320,8 @@ function sdRender() {
   const sorted = [...sdExercises].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
   document.getElementById('sd-stat-total').textContent = sdExercises.length;
-  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
   const weekCount = sdExercises.filter(e => e.date && new Date(e.date) >= weekAgo).length;
   document.getElementById('sd-stat-week').textContent = weekCount;
 
@@ -332,7 +332,9 @@ function sdRender() {
 
   const DIFF_BADGE = { Easy: 'badge-offer', Medium: 'badge-technical', Hard: 'badge-rejected' };
 
-  tbody.innerHTML = sorted.map(e => `
+  tbody.innerHTML = sorted
+    .map(
+      e => `
     <tr>
       <td>
         <strong>${esc(e.problem)}</strong>
@@ -349,7 +351,9 @@ function sdRender() {
         </div>
       </td>
     </tr>
-  `).join('');
+  `,
+    )
+    .join('');
 }
 
 function sdOpenAdd() {
@@ -392,12 +396,12 @@ async function sdHandleSubmit(evt) {
   problemEl.classList.remove('invalid');
 
   const entry = {
-    problem:    problemEl.value.trim(),
-    date:       document.getElementById('sd-f-date').value,
+    problem: problemEl.value.trim(),
+    date: document.getElementById('sd-f-date').value,
     difficulty: document.getElementById('sd-f-difficulty').value,
-    score:      toNum(document.getElementById('sd-f-score').value),
-    url:        document.getElementById('sd-f-url').value.trim(),
-    notes:      document.getElementById('sd-f-notes').value.trim(),
+    score: toNum(document.getElementById('sd-f-score').value),
+    url: document.getElementById('sd-f-url').value.trim(),
+    notes: document.getElementById('sd-f-notes').value.trim(),
   };
 
   if (sdEditingId) {
@@ -407,7 +411,7 @@ async function sdHandleSubmit(evt) {
       body: JSON.stringify(entry),
     });
     const saved = await res.json();
-    sdExercises = sdExercises.map(x => x.id === sdEditingId ? saved : x);
+    sdExercises = sdExercises.map(x => (x.id === sdEditingId ? saved : x));
   } else {
     const res = await fetch('/api/system-design', {
       method: 'POST',
@@ -434,17 +438,18 @@ async function sdConfirmDelete(id) {
 function renderCombinedCalendar(calendar) {
   const today = todayISO();
   const grid = document.getElementById('combined-cal-grid');
-  grid.innerHTML = calendar.map(day => {
-    const d = new Date(day.date + 'T12:00:00');
-    const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
-    const dayNum = d.getDate();
-    const month = d.toLocaleDateString('en-US', { month: 'short' });
-    const isToday = day.date === today;
-    const qLevel  = Math.min(day.questions_completed, 3);
-    const sdLevel = Math.min(day.sd_count, 3);
-    const chLevel = Math.min(day.ch_count, 3);
-    const rqLevel = Math.min(day.rq_count, 3);
-    return `
+  grid.innerHTML = calendar
+    .map(day => {
+      const d = new Date(day.date + 'T12:00:00');
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+      const dayNum = d.getDate();
+      const month = d.toLocaleDateString('en-US', { month: 'short' });
+      const isToday = day.date === today;
+      const qLevel = Math.min(day.questions_completed, 3);
+      const sdLevel = Math.min(day.sd_count, 3);
+      const chLevel = Math.min(day.ch_count, 3);
+      const rqLevel = Math.min(day.rq_count, 3);
+      return `
       <div class="cal-day ${isToday ? 'cal-today' : ''}">
         <span class="cal-day-name">${dayName}</span>
         <span class="cal-day-num">${dayNum}</span>
@@ -455,7 +460,8 @@ function renderCombinedCalendar(calendar) {
         <div class="cal-rq-dot cal-rq-dot-${rqLevel}">${day.rq_count > 0 ? '🎤 ' + day.rq_count : '—'}</div>
       </div>
     `;
-  }).join('');
+    })
+    .join('');
 }
 
 /* ────────────────────────────────────────────
@@ -487,37 +493,37 @@ function chPopulateTopics() {
 
 function chRender() {
   const search = document.getElementById('ch-search').value.toLowerCase();
-  const week   = document.getElementById('ch-filter-week').value;
-  const diff   = document.getElementById('ch-filter-diff').value;
-  const topic  = document.getElementById('ch-filter-topic').value;
+  const week = document.getElementById('ch-filter-week').value;
+  const diff = document.getElementById('ch-filter-diff').value;
+  const topic = document.getElementById('ch-filter-topic').value;
   const status = document.getElementById('ch-filter-status').value;
 
   const filtered = challengesData.filter(c => {
     if (search && !c.title.toLowerCase().includes(search)) return false;
-    if (week   && String(c.week) !== week) return false;
-    if (diff   && c.difficulty !== diff) return false;
-    if (topic  && c.topic !== topic) return false;
+    if (week && String(c.week) !== week) return false;
+    if (diff && c.difficulty !== diff) return false;
+    if (topic && c.topic !== topic) return false;
     if (status === 'done' && !c.done) return false;
     if (status === 'todo' && c.done) return false;
     return true;
   });
 
-  const total  = challengesData.length;
-  const done   = challengesData.filter(c => c.done).length;
-  const easyTotal  = challengesData.filter(c => c.difficulty === 'Easy').length;
-  const easyDone   = challengesData.filter(c => c.difficulty === 'Easy' && c.done).length;
-  const medTotal   = challengesData.filter(c => c.difficulty === 'Medium').length;
-  const medDone    = challengesData.filter(c => c.difficulty === 'Medium' && c.done).length;
-  const pct = total ? Math.round(done / total * 100) : 0;
+  const total = challengesData.length;
+  const done = challengesData.filter(c => c.done).length;
+  const easyTotal = challengesData.filter(c => c.difficulty === 'Easy').length;
+  const easyDone = challengesData.filter(c => c.difficulty === 'Easy' && c.done).length;
+  const medTotal = challengesData.filter(c => c.difficulty === 'Medium').length;
+  const medDone = challengesData.filter(c => c.difficulty === 'Medium' && c.done).length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
 
-  document.getElementById('ch-done').textContent  = done;
+  document.getElementById('ch-done').textContent = done;
   document.getElementById('ch-total').textContent = total;
-  document.getElementById('ch-pct').textContent   = pct + '%';
-  document.getElementById('ch-bar').style.width   = pct + '%';
-  document.getElementById('ch-easy-done').textContent  = easyDone;
+  document.getElementById('ch-pct').textContent = pct + '%';
+  document.getElementById('ch-bar').style.width = pct + '%';
+  document.getElementById('ch-easy-done').textContent = easyDone;
   document.getElementById('ch-easy-total').textContent = easyTotal;
-  document.getElementById('ch-med-done').textContent   = medDone;
-  document.getElementById('ch-med-total').textContent  = medTotal;
+  document.getElementById('ch-med-done').textContent = medDone;
+  document.getElementById('ch-med-total').textContent = medTotal;
 
   const tbody = document.getElementById('ch-tbody');
   if (filtered.length === 0) {
@@ -525,7 +531,9 @@ function chRender() {
     return;
   }
 
-  tbody.innerHTML = filtered.map(c => `
+  tbody.innerHTML = filtered
+    .map(
+      c => `
     <tr class="${c.done ? 'ch-row-done' : ''}">
       <td>
         <button class="ch-toggle ${c.done ? 'ch-toggle-done' : ''}"
@@ -540,7 +548,9 @@ function chRender() {
       <td>${esc(c.topic)}</td>
       <td style="color:var(--text-muted)">Week ${c.week}</td>
     </tr>
-  `).join('');
+  `,
+    )
+    .join('');
 }
 
 async function chToggle(id) {
@@ -578,12 +588,16 @@ function rqRenderQuestions() {
     <div class="questions-list">
       ${questions.map((q, i) => rqCardHTML(q, i, completed)).join('')}
     </div>
-    ${allDone ? `
+    ${
+      allDone
+        ? `
       <div class="all-done-msg">
         <span class="all-done-emoji">🎉</span>
         <h3>All done for today!</h3>
         <p>Great work. Come back tomorrow for 5 new questions and keep the streak going.</p>
-      </div>` : ''}
+      </div>`
+        : ''
+    }
   `;
 }
 
@@ -618,7 +632,7 @@ function rqCardHTML(q, idx, completed) {
 
 function rqToggleReveal(id) {
   const reveal = document.getElementById('rqreveal-' + id);
-  const btn    = document.getElementById('rqreveal-btn-' + id);
+  const btn = document.getElementById('rqreveal-btn-' + id);
   const nowHidden = reveal.classList.toggle('hidden');
   btn.textContent = nowHidden ? '💡 Reveal tips & example' : '🙈 Hide tips & example';
 }
@@ -674,7 +688,8 @@ function coColValue(c, col) {
       const gd = coGlassdoor(c.company_name);
       return gd && gd.glassdoor_rating != null && gd.glassdoor_rating !== '' ? Number(gd.glassdoor_rating) : -1;
     }
-    default: return '';
+    default:
+      return '';
   }
 }
 
@@ -683,7 +698,8 @@ function coRender() {
 
   const rows = companies.filter(c => {
     if (!search) return true;
-    const haystack = `${c.company_name || ''} ${c.industry || ''} ${c.location || ''} ${c.benefits || ''}`.toLowerCase();
+    const haystack =
+      `${c.company_name || ''} ${c.industry || ''} ${c.location || ''} ${c.benefits || ''}`.toLowerCase();
     return haystack.includes(search);
   });
 
@@ -710,9 +726,10 @@ function coRender() {
     return;
   }
 
-  tbody.innerHTML = rows.map(c => {
-    const gd = coGlassdoor(c.company_name);
-    return `
+  tbody.innerHTML = rows
+    .map(c => {
+      const gd = coGlassdoor(c.company_name);
+      return `
     <tr${c.excluded ? ' class="row-excluded"' : ''}>
       <td>
         <strong>${esc(c.company_name)}</strong>
@@ -730,15 +747,18 @@ function coRender() {
       <td>
         <div class="actions">
           <button class="btn-icon" title="Edit" onclick="coOpenEdit('${c.id}')">✏️</button>
-          ${c.excluded
-            ? `<button class="btn-icon" title="Stop excluding this company" onclick="coToggleExcluded('${c.id}')">↩️</button>`
-            : `<button class="btn-icon danger" title="Exclude company — discard its jobs" onclick="coToggleExcluded('${c.id}')">🚫</button>`}
+          ${
+            c.excluded
+              ? `<button class="btn-icon" title="Stop excluding this company" onclick="coToggleExcluded('${c.id}')">↩️</button>`
+              : `<button class="btn-icon danger" title="Exclude company — discard its jobs" onclick="coToggleExcluded('${c.id}')">🚫</button>`
+          }
           <button class="btn-icon danger" title="Delete" onclick="coConfirmDelete('${c.id}')">🗑</button>
         </div>
       </td>
     </tr>
   `;
-  }).join('');
+    })
+    .join('');
 }
 
 function coOpenAdd() {
@@ -784,13 +804,13 @@ async function coHandleSubmit(evt) {
   nameEl.classList.remove('invalid');
 
   const entry = {
-    company_name:   nameEl.value.trim(),
-    url:            document.getElementById('co-f-url').value.trim(),
-    industry:       document.getElementById('co-f-industry').value.trim(),
-    location:       document.getElementById('co-f-location').value.trim(),
+    company_name: nameEl.value.trim(),
+    url: document.getElementById('co-f-url').value.trim(),
+    industry: document.getElementById('co-f-industry').value.trim(),
+    location: document.getElementById('co-f-location').value.trim(),
     interest_level: toNum(document.getElementById('co-f-interest_level').value),
-    benefits:       document.getElementById('co-f-benefits').value.trim(),
-    notes:          document.getElementById('co-f-notes').value.trim(),
+    benefits: document.getElementById('co-f-benefits').value.trim(),
+    notes: document.getElementById('co-f-notes').value.trim(),
   };
   const existing = companies.find(x => x.id === coEditingId);
   if (existing && existing.excluded) entry.excluded = true;
@@ -802,7 +822,7 @@ async function coHandleSubmit(evt) {
       body: JSON.stringify(entry),
     });
     const saved = await res.json();
-    companies = companies.map(x => x.id === coEditingId ? saved : x);
+    companies = companies.map(x => (x.id === coEditingId ? saved : x));
   } else {
     const res = await fetch('/api/companies', {
       method: 'POST',
@@ -876,20 +896,29 @@ function jobsRenderUpcoming() {
   in7.setDate(in7.getDate() + 7);
   const until = in7.toISOString().split('T')[0];
 
-  const upcoming = jobs.filter(j =>
-    j.next_interview_date && j.next_interview_date >= today && j.next_interview_date <= until &&
-    !JOB_SUNK_STATUSES.includes(j.status)
-  ).sort((a, b) => a.next_interview_date.localeCompare(b.next_interview_date));
+  const upcoming = jobs
+    .filter(
+      j =>
+        j.next_interview_date &&
+        j.next_interview_date >= today &&
+        j.next_interview_date <= until &&
+        !JOB_SUNK_STATUSES.includes(j.status),
+    )
+    .sort((a, b) => a.next_interview_date.localeCompare(b.next_interview_date));
 
   const section = document.getElementById('upcoming-section');
   section.classList.toggle('hidden', upcoming.length === 0);
-  document.getElementById('upcoming-list').innerHTML = upcoming.map(j => `
+  document.getElementById('upcoming-list').innerHTML = upcoming
+    .map(
+      j => `
     <li>
       <strong>${esc(j.company)}</strong>
       ${esc(j.title || '')}
       <span style="color:#92400e">${formatDate(j.next_interview_date)}${j.next_interview_type ? ' · ' + esc(j.next_interview_type) : ''}</span>
     </li>
-  `).join('');
+  `,
+    )
+    .join('');
 }
 
 /* Levels come from job-search.json (see README). */
@@ -914,8 +943,8 @@ function ensureLevelOption(select, level) {
 /* Work mode, level and status filters live in the query string so filtered views can be bookmarked. */
 const JOBS_URL_FILTERS = {
   work_mode: 'jobs-work-mode-filter',
-  level:     'jobs-level-filter',
-  status:    'jobs-status-filter',
+  level: 'jobs-level-filter',
+  status: 'jobs-status-filter',
 };
 
 function jobsApplyUrlFilters() {
@@ -947,19 +976,36 @@ function jobContacts(j) {
 
 function jobsColValue(j, col) {
   switch (col) {
-    case 'company':          return (j.company || '').toLowerCase();
-    case 'level':            return (j.level || '').toLowerCase();
-    case 'location':         return (j.location || '').toLowerCase();
-    case 'glassdoor_rating': return j.glassdoor_rating != null && j.glassdoor_rating !== '' ? Number(j.glassdoor_rating) : -1;
-    case 'match_score':      return j.match_score != null && j.match_score !== '' ? Number(j.match_score) : -1;
-    case 'status':           return jobStatusRank(j);
-    case 'date_added':       return j.date_added || '';
-    default:                 return '';
+    case 'company':
+      return (j.company || '').toLowerCase();
+    case 'level':
+      return (j.level || '').toLowerCase();
+    case 'location':
+      return (j.location || '').toLowerCase();
+    case 'glassdoor_rating':
+      return j.glassdoor_rating != null && j.glassdoor_rating !== '' ? Number(j.glassdoor_rating) : -1;
+    case 'match_score':
+      return j.match_score != null && j.match_score !== '' ? Number(j.match_score) : -1;
+    case 'status':
+      return jobStatusRank(j);
+    case 'date_added':
+      return j.date_added || '';
+    default:
+      return '';
   }
 }
 
 // Furthest along the process first, then closed-out jobs.
-const JOB_STATUS_ORDER = ['Offer', 'Interviewing', 'Applied', 'Interested', 'Pending', 'Rejected', 'Discarded', 'Closed'];
+const JOB_STATUS_ORDER = [
+  'Offer',
+  'Interviewing',
+  'Applied',
+  'Interested',
+  'Pending',
+  'Rejected',
+  'Discarded',
+  'Closed',
+];
 function jobStatusRank(j) {
   const i = JOB_STATUS_ORDER.indexOf(j.status || 'Pending');
   return i === -1 ? JOB_STATUS_ORDER.length : i;
@@ -990,8 +1036,11 @@ function jobsRender() {
     if (levelFilter && j.level !== levelFilter) return false;
     if (statusFilter && (j.status || 'Pending') !== statusFilter) return false;
     if (!search) return true;
-    const contactText = jobContacts(j).map(p => p.name).join(' ');
-    const haystack = `${j.company || ''} ${j.title || ''} ${j.location || ''} ${j.level || ''} ${j.notes || ''} ${j.glassdoor_notes || ''} ${contactText}`.toLowerCase();
+    const contactText = jobContacts(j)
+      .map(p => p.name)
+      .join(' ');
+    const haystack =
+      `${j.company || ''} ${j.title || ''} ${j.location || ''} ${j.level || ''} ${j.notes || ''} ${j.glassdoor_notes || ''} ${contactText}`.toLowerCase();
     return haystack.includes(search);
   });
 
@@ -1028,9 +1077,10 @@ function jobsRender() {
 
   const countEl = document.getElementById('jobs-count');
   if (countEl) {
-    countEl.textContent = rows.length === jobs.length
-      ? `${jobs.length} opening${jobs.length === 1 ? '' : 's'}`
-      : `${rows.length} of ${jobs.length} opening${jobs.length === 1 ? '' : 's'}`;
+    countEl.textContent =
+      rows.length === jobs.length
+        ? `${jobs.length} opening${jobs.length === 1 ? '' : 's'}`
+        : `${rows.length} of ${jobs.length} opening${jobs.length === 1 ? '' : 's'}`;
   }
 
   const tbody = document.getElementById('jobs-tbody');
@@ -1039,10 +1089,11 @@ function jobsRender() {
     return;
   }
 
-  tbody.innerHTML = rows.map(j => {
-    const contacts = jobContacts(j);
-    const title = j.title ? esc(j.title) : '';
-    return `
+  tbody.innerHTML = rows
+    .map(j => {
+      const contacts = jobContacts(j);
+      const title = j.title ? esc(j.title) : '';
+      return `
     <tr>
       <td>
         ${title ? (j.link ? `<a href="${esc(j.link)}" target="_blank" style="color:inherit;text-decoration:none;"><strong>${title} ↗</strong></a>` : `<strong>${title}</strong>`) : `<strong>${esc(j.company)}</strong>`}
@@ -1065,7 +1116,9 @@ function jobsRender() {
       <td>
         <select class="badge status-select ${JOB_STATUS_BADGE[j.status] || ''}" title="Change status"
                 onchange="jobsSetStatus('${j.id}', this.value)">
-          ${Object.keys(JOB_STATUS_BADGE).map(s => `<option value="${s}"${(j.status || 'Pending') === s ? ' selected' : ''}>${s}</option>`).join('')}
+          ${Object.keys(JOB_STATUS_BADGE)
+            .map(s => `<option value="${s}"${(j.status || 'Pending') === s ? ' selected' : ''}>${s}</option>`)
+            .join('')}
         </select>
         ${j.next_interview_date ? `<br/><span style="font-size:12px;color:#64748b;">📅 ${formatDate(j.next_interview_date)}${j.next_interview_type ? ' · ' + esc(j.next_interview_type) : ''}</span>` : ''}
       </td>
@@ -1079,7 +1132,8 @@ function jobsRender() {
       </td>
     </tr>
   `;
-  }).join('');
+    })
+    .join('');
 }
 
 function jobsOpenAdd() {
@@ -1153,7 +1207,7 @@ function jobsRemoveContactRow(rowId) {
 function jobsCollectContacts() {
   return [...document.querySelectorAll('.contact-row')]
     .map(row => ({
-      name:  row.querySelector('.contact-name').value.trim(),
+      name: row.querySelector('.contact-name').value.trim(),
       title: row.querySelector('.contact-title').value.trim(),
       email: row.querySelector('.contact-email').value.trim(),
     }))
@@ -1183,20 +1237,20 @@ async function jobsHandleSubmit(evt) {
   }
 
   const entry = {
-    company:          companyEl.value.trim(),
-    title:            titleEl.value.trim(),
-    location:         document.getElementById('jobs-f-location').value.trim(),
-    work_mode:        document.getElementById('jobs-f-work_mode').value,
-    level:            document.getElementById('jobs-f-level').value,
-    link:             document.getElementById('jobs-f-link').value.trim(),
+    company: companyEl.value.trim(),
+    title: titleEl.value.trim(),
+    location: document.getElementById('jobs-f-location').value.trim(),
+    work_mode: document.getElementById('jobs-f-work_mode').value,
+    level: document.getElementById('jobs-f-level').value,
+    link: document.getElementById('jobs-f-link').value.trim(),
     glassdoor_rating: toNum(document.getElementById('jobs-f-glassdoor_rating').value),
-    status:           document.getElementById('jobs-f-status').value,
-    date_added:       document.getElementById('jobs-f-date_added').value || todayISO(),
+    status: document.getElementById('jobs-f-status').value,
+    date_added: document.getElementById('jobs-f-date_added').value || todayISO(),
     next_interview_date: document.getElementById('jobs-f-next_interview_date').value,
     next_interview_type: document.getElementById('jobs-f-next_interview_type').value.trim(),
-    glassdoor_notes:  document.getElementById('jobs-f-glassdoor_notes').value.trim(),
-    notes:            document.getElementById('jobs-f-notes').value.trim(),
-    contacts:         jobsCollectContacts(),
+    glassdoor_notes: document.getElementById('jobs-f-glassdoor_notes').value.trim(),
+    notes: document.getElementById('jobs-f-notes').value.trim(),
+    contacts: jobsCollectContacts(),
   };
 
   if (jobsEditingId) {
@@ -1207,7 +1261,7 @@ async function jobsHandleSubmit(evt) {
       body: JSON.stringify({ ...jobs.find(x => x.id === jobsEditingId), ...entry }),
     });
     const saved = await res.json();
-    jobs = jobs.map(x => x.id === jobsEditingId ? saved : x);
+    jobs = jobs.map(x => (x.id === jobsEditingId ? saved : x));
   } else {
     const res = await fetch('/api/jobs', {
       method: 'POST',
@@ -1242,7 +1296,7 @@ async function jobsSetStatus(id, status) {
     return;
   }
   const saved = await res.json();
-  jobs = jobs.map(x => x.id === id ? saved : x);
+  jobs = jobs.map(x => (x.id === id ? saved : x));
   jobsRender();
 }
 
@@ -1260,18 +1314,24 @@ async function jobsConfirmDelete(id) {
 ──────────────────────────────────────────── */
 // Column each status is drawn in; statuses sharing a column are alternative outcomes.
 const PIPELINE_STAGE = {
-  'Pending': 0, 'Interested': 1, 'Applied': 2, 'Interviewing': 3,
-  'Offer': 4, 'Rejected': 5, 'Discarded': 5, 'Closed': 6,
+  'Pending': 0,
+  'Interested': 1,
+  'Applied': 2,
+  'Interviewing': 3,
+  'Offer': 4,
+  'Rejected': 5,
+  'Discarded': 5,
+  'Closed': 6,
 };
 const PIPELINE_COLOR = {
-  'Pending':      '#94a3b8',
-  'Interested':   '#2a78d6',
-  'Applied':      '#4a3aa7',
+  'Pending': '#94a3b8',
+  'Interested': '#2a78d6',
+  'Applied': '#4a3aa7',
   'Interviewing': '#eda100',
-  'Offer':        '#008300',
-  'Rejected':     '#e34948',
-  'Discarded':    '#475569',
-  'Closed':      '#a8a29e',
+  'Offer': '#008300',
+  'Rejected': '#e34948',
+  'Discarded': '#475569',
+  'Closed': '#a8a29e',
 };
 
 let pipelineJobs = [];
@@ -1306,7 +1366,9 @@ function pipelineRender() {
   const current = {};
   const linkCounts = {};
   paths.forEach(p => {
-    p.forEach(s => { reached[s] = (reached[s] || 0) + 1; });
+    p.forEach(s => {
+      reached[s] = (reached[s] || 0) + 1;
+    });
     const last = p[p.length - 1];
     current[last] = (current[last] || 0) + 1;
     for (let i = 1; i < p.length; i++) {
@@ -1319,7 +1381,10 @@ function pipelineRender() {
   summary.textContent = `${paths.length} of ${pipelineJobs.length} jobs shown`;
 
   const links = Object.entries(linkCounts)
-    .map(([key, value]) => { const [source, target] = key.split('→'); return { source, target, value }; })
+    .map(([key, value]) => {
+      const [source, target] = key.split('→');
+      return { source, target, value };
+    })
     .sort((a, b) => PIPELINE_STAGE[a.source] - PIPELINE_STAGE[b.source] || b.value - a.value);
 
   document.getElementById('pipeline-tbody').innerHTML = links.length
@@ -1349,25 +1414,29 @@ function pipelineDraw(chart, reached, current, links) {
   // nodes there. Lanes sit below a column's nodes, nearest targets first and,
   // for a shared target, nearest sources first (they arrive from above).
   const colOf = s => columns.indexOf(PIPELINE_STAGE[s]);
-  const items = columns.map(c => statuses.filter(s => PIPELINE_STAGE[s] === c)
-    .map(name => ({ name, value: reached[name] })));
+  const items = columns.map(c =>
+    statuses.filter(s => PIPELINE_STAGE[s] === c).map(name => ({ name, value: reached[name] })),
+  );
   const flows = links.map(l => ({ ...l, lanes: [] }));
-  [...flows].sort((a, b) => colOf(a.target) - colOf(b.target) || colOf(b.source) - colOf(a.source)).forEach(f => {
-    for (let ci = colOf(f.source) + 1; ci < colOf(f.target); ci++) {
-      const lane = { value: f.value };
-      items[ci].push(lane);
-      f.lanes.push(lane);
-    }
-  });
+  [...flows]
+    .sort((a, b) => colOf(a.target) - colOf(b.target) || colOf(b.source) - colOf(a.source))
+    .forEach(f => {
+      for (let ci = colOf(f.source) + 1; ci < colOf(f.target); ci++) {
+        const lane = { value: f.value };
+        items[ci].push(lane);
+        f.lanes.push(lane);
+      }
+    });
 
   // Stack each column top to bottom; one scale for all columns so heights are
   // comparable. A node's height counts every job that reached it, so jobs that
   // stopped there show as height beyond the outgoing flows. Adjacent lanes
   // touch, like ribbons leaving the same node.
-  const gapBefore = (list, i) => i === 0 || (!list[i].name && !list[i - 1].name) ? 0 : nodeGap;
+  const gapBefore = (list, i) => (i === 0 || (!list[i].name && !list[i - 1].name) ? 0 : nodeGap);
   const gapsOf = list => list.reduce((t, _, i) => t + gapBefore(list, i), 0);
-  const scale = Math.min(...items.map(list =>
-    (height - 2 * pad.y - gapsOf(list)) / list.reduce((t, it) => t + it.value, 0)));
+  const scale = Math.min(
+    ...items.map(list => (height - 2 * pad.y - gapsOf(list)) / list.reduce((t, it) => t + it.value, 0)),
+  );
   const colStep = columns.length > 1 ? (width - 2 * pad.x - nodeWidth) / (columns.length - 1) : 0;
   const nodes = {};
   items.forEach((list, ci) => {
@@ -1386,46 +1455,62 @@ function pipelineDraw(chart, reached, current, links) {
   // Each flow leaves from the top of its source's remaining space and enters
   // at the top of its target's, ordered by where the ribbon heads next (or
   // came from) so ribbons don't cross needlessly.
-  flows.forEach(f => { f.w = f.value * scale; });
+  flows.forEach(f => {
+    f.w = f.value * scale;
+  });
   const midY = it => it.y0 + it.h / 2;
   const nextY = f => midY(f.lanes.length ? f.lanes[0] : nodes[f.target]);
   const prevY = f => midY(f.lanes.length ? f.lanes[f.lanes.length - 1] : nodes[f.source]);
-  [...flows].sort((a, b) => nextY(a) - nextY(b)).forEach(f => {
-    f.sy = nodes[f.source].outY + f.w / 2;
-    nodes[f.source].outY += f.w;
-  });
-  [...flows].sort((a, b) => prevY(a) - prevY(b)).forEach(f => {
-    f.ty = nodes[f.target].inY + f.w / 2;
-    nodes[f.target].inY += f.w;
-  });
+  [...flows]
+    .sort((a, b) => nextY(a) - nextY(b))
+    .forEach(f => {
+      f.sy = nodes[f.source].outY + f.w / 2;
+      nodes[f.source].outY += f.w;
+    });
+  [...flows]
+    .sort((a, b) => prevY(a) - prevY(b))
+    .forEach(f => {
+      f.ty = nodes[f.target].inY + f.w / 2;
+      nodes[f.target].inY += f.w;
+    });
 
   const jobsLabel = n => `${n} job${n === 1 ? '' : 's'}`;
   const lastCol = columns.length - 1;
-  const flowSvg = flows.map((f, i) => {
-    // Curve between columns, run straight across each lane.
-    const points = [
-      [nodes[f.source].x0 + nodeWidth, f.sy],
-      ...f.lanes.flatMap(l => [[l.x0, midY(l)], [l.x0 + nodeWidth, midY(l)]]),
-      [nodes[f.target].x0, f.ty],
-    ];
-    const d = points.slice(1).map(([x, y], k) => {
-      const [px, py] = points[k];
-      const mx = (px + x) / 2;
-      return k % 2 ? `L${x},${y}` : `C${mx},${py} ${mx},${y} ${x},${y}`;
-    }).join('');
-    return `<path class="pipeline-link" data-flow="${i}" fill="none" stroke="${PIPELINE_COLOR[f.target]}"
+  const flowSvg = flows
+    .map((f, i) => {
+      // Curve between columns, run straight across each lane.
+      const points = [
+        [nodes[f.source].x0 + nodeWidth, f.sy],
+        ...f.lanes.flatMap(l => [
+          [l.x0, midY(l)],
+          [l.x0 + nodeWidth, midY(l)],
+        ]),
+        [nodes[f.target].x0, f.ty],
+      ];
+      const d = points
+        .slice(1)
+        .map(([x, y], k) => {
+          const [px, py] = points[k];
+          const mx = (px + x) / 2;
+          return k % 2 ? `L${x},${y}` : `C${mx},${py} ${mx},${y} ${x},${y}`;
+        })
+        .join('');
+      return `<path class="pipeline-link" data-flow="${i}" fill="none" stroke="${PIPELINE_COLOR[f.target]}"
       stroke-width="${Math.max(2, f.w)}" d="M${points[0][0]},${points[0][1]}${d}"/>`;
-  }).join('');
-  const nodeSvg = Object.values(nodes).map(n => {
-    const right = n.col === lastCol && lastCol > 0;
-    const lx = right ? n.x0 + nodeWidth + 8 : n.x0 - 8;
-    return `<g data-node="${esc(n.name)}">
+    })
+    .join('');
+  const nodeSvg = Object.values(nodes)
+    .map(n => {
+      const right = n.col === lastCol && lastCol > 0;
+      const lx = right ? n.x0 + nodeWidth + 8 : n.x0 - 8;
+      return `<g data-node="${esc(n.name)}">
       <rect x="${n.x0}" y="${n.y0}" width="${nodeWidth}" height="${Math.max(2, n.h)}" rx="2" fill="${PIPELINE_COLOR[n.name]}"/>
       <text class="pipeline-label" x="${lx}" y="${n.y0 + n.h / 2}" dy="0.35em" text-anchor="${right ? 'start' : 'end'}">
         ${esc(n.name)}<tspan class="pipeline-label-value" dx="6">${reached[n.name]}</tspan>
       </text>
     </g>`;
-  }).join('');
+    })
+    .join('');
   chart.innerHTML = `<svg width="${width}" height="${height}" role="img"
     aria-label="Flow of jobs between statuses">${flowSvg}${nodeSvg}</svg>`;
 
@@ -1439,15 +1524,19 @@ function pipelineDraw(chart, reached, current, links) {
       html = `<strong>${esc(f.source)} → ${esc(f.target)}</strong><br>${jobsLabel(f.value)}`;
     } else if (nodeEl) {
       const name = nodeEl.dataset.node;
-      html = `<strong>${esc(name)}</strong><br>${jobsLabel(reached[name])} reached` +
+      html =
+        `<strong>${esc(name)}</strong><br>${jobsLabel(reached[name])} reached` +
         `<br>${jobsLabel(current[name] || 0)} currently here`;
     }
-    if (!html) { tooltip.classList.add('hidden'); return; }
+    if (!html) {
+      tooltip.classList.add('hidden');
+      return;
+    }
     tooltip.innerHTML = html;
     tooltip.classList.remove('hidden');
     const box = chart.parentElement.getBoundingClientRect();
-    tooltip.style.left = (event.clientX - box.left + 14) + 'px';
-    tooltip.style.top = (event.clientY - box.top + 14) + 'px';
+    tooltip.style.left = event.clientX - box.left + 14 + 'px';
+    tooltip.style.top = event.clientY - box.top + 14 + 'px';
   };
   chart.onmouseleave = () => tooltip.classList.add('hidden');
 }

@@ -8,17 +8,13 @@ def _connect(database_file):
     if directory:
         os.makedirs(directory, exist_ok=True)
     connection = sqlite3.connect(database_file)
-    connection.execute(
-        "CREATE TABLE IF NOT EXISTS app_state (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
-    )
+    connection.execute("CREATE TABLE IF NOT EXISTS app_state (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
     return connection
 
 
 def load_state(database_file, key, default, legacy_file=None):
     with _connect(database_file) as connection:
-        row = connection.execute(
-            "SELECT value FROM app_state WHERE key = ?", (key,)
-        ).fetchone()
+        row = connection.execute("SELECT value FROM app_state WHERE key = ?", (key,)).fetchone()
         if row is not None:
             return json.loads(row[0])
 
@@ -37,7 +33,6 @@ def load_state(database_file, key, default, legacy_file=None):
 def save_state(database_file, key, value):
     with _connect(database_file) as connection:
         connection.execute(
-            "INSERT INTO app_state (key, value) VALUES (?, ?) "
-            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            "INSERT INTO app_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
             (key, json.dumps(value)),
         )

@@ -33,6 +33,7 @@ def check_job_link_closed(url):
         return None
     return any(marker in html for marker in CLOSED_JOB_MARKERS)
 
+
 DATABASE_FILE = os.path.join(os.path.dirname(__file__), "data", "tracker.db")
 QUESTIONS_FILE = os.path.join(os.path.dirname(__file__), "data", "questions.json")
 PRACTICE_FILE = os.path.join(os.path.dirname(__file__), "data", "practice.json")
@@ -62,9 +63,7 @@ def save_practice(data):
 
 
 def load_system_design():
-    return load_state(
-        DATABASE_FILE, "system_design", {"exercises": []}, SYSTEM_DESIGN_FILE
-    )
+    return load_state(DATABASE_FILE, "system_design", {"exercises": []}, SYSTEM_DESIGN_FILE)
 
 
 def save_system_design(data):
@@ -168,16 +167,18 @@ def ensure_company_exists(entry):
     data = load_companies()
     if any((c.get("company_name") or "").strip().lower() == company_key for c in data["companies"]):
         return
-    data["companies"].append({
-        "id": str(uuid.uuid4()),
-        "company_name": company_name,
-        "url": "",
-        "industry": "",
-        "location": entry.get("location", ""),
-        "interest_level": None,
-        "benefits": "",
-        "notes": "",
-    })
+    data["companies"].append(
+        {
+            "id": str(uuid.uuid4()),
+            "company_name": company_name,
+            "url": "",
+            "industry": "",
+            "location": entry.get("location", ""),
+            "interest_level": None,
+            "benefits": "",
+            "notes": "",
+        }
+    )
     save_companies(data)
 
 
@@ -188,8 +189,7 @@ def normalize_company(name):
 def is_company_excluded(name):
     key = normalize_company(name)
     return bool(key) and any(
-        c.get("excluded") and normalize_company(c.get("company_name")) == key
-        for c in load_companies()["companies"]
+        c.get("excluded") and normalize_company(c.get("company_name")) == key for c in load_companies()["companies"]
     )
 
 
@@ -298,11 +298,13 @@ def practice_today():
     selected_questions = [q_map[qid] for qid in selected_ids if qid in q_map]
     completed = practice["history"][today].get("completed", [])
 
-    return jsonify({
-        "questions": selected_questions,
-        "completed": completed,
-        "streak": compute_streak(practice["history"]),
-    })
+    return jsonify(
+        {
+            "questions": selected_questions,
+            "completed": completed,
+            "streak": compute_streak(practice["history"]),
+        }
+    )
 
 
 @app.route("/api/practice/complete", methods=["POST"])
@@ -332,20 +334,22 @@ def practice_progress():
         d = today - timedelta(days=i)
         key = d.isoformat()
         day_data = practice["history"].get(key, {})
-        calendar.append({
-            "date": key,
-            "completed": len(day_data.get("completed", [])),
-            "total": len(day_data.get("questions", [])) or 3,
-        })
+        calendar.append(
+            {
+                "date": key,
+                "completed": len(day_data.get("completed", [])),
+                "total": len(day_data.get("questions", [])) or 3,
+            }
+        )
 
-    total_completed = sum(
-        len(v.get("completed", [])) for v in practice["history"].values()
+    total_completed = sum(len(v.get("completed", [])) for v in practice["history"].values())
+    return jsonify(
+        {
+            "calendar": calendar,
+            "streak": compute_streak(practice["history"]),
+            "total_completed": total_completed,
+        }
     )
-    return jsonify({
-        "calendar": calendar,
-        "streak": compute_streak(practice["history"]),
-        "total_completed": total_completed,
-    })
 
 
 @app.route("/api/progress", methods=["GET"])
@@ -364,41 +368,38 @@ def combined_progress():
         sd_count = sum(1 for e in sd_data["exercises"] if e.get("date") == key)
         ch_count = sum(1 for v in ch_progress["completed"].values() if v == key)
         rq_count = len(rq_practice["history"].get(key, {}).get("completed", []))
-        calendar.append({
-            "date": key,
-            "questions_completed": len(day_data.get("completed", [])),
-            "questions_total": len(day_data.get("questions", [])) or 3,
-            "sd_count": sd_count,
-            "ch_count": ch_count,
-            "rq_count": rq_count,
-        })
+        calendar.append(
+            {
+                "date": key,
+                "questions_completed": len(day_data.get("completed", [])),
+                "questions_total": len(day_data.get("questions", [])) or 3,
+                "sd_count": sd_count,
+                "ch_count": ch_count,
+                "rq_count": rq_count,
+            }
+        )
 
-    total_questions = sum(
-        len(v.get("completed", [])) for v in practice["history"].values()
-    )
-    total_rq = sum(
-        len(v.get("completed", [])) for v in rq_practice["history"].values()
-    )
+    total_questions = sum(len(v.get("completed", [])) for v in practice["history"].values())
+    total_rq = sum(len(v.get("completed", [])) for v in rq_practice["history"].values())
     week_ago = today - timedelta(days=7)
-    sd_this_week = sum(
-        1 for e in sd_data["exercises"]
-        if e.get("date") and date.fromisoformat(e["date"]) >= week_ago
-    )
+    sd_this_week = sum(1 for e in sd_data["exercises"] if e.get("date") and date.fromisoformat(e["date"]) >= week_ago)
 
     challenges_done = len(ch_progress["completed"])
     challenges_total = len(load_challenges())
 
-    return jsonify({
-        "streak": compute_streak(practice["history"]),
-        "rq_streak": compute_streak(rq_practice["history"]),
-        "total_questions": total_questions,
-        "total_rq": total_rq,
-        "total_sd": len(sd_data["exercises"]),
-        "sd_this_week": sd_this_week,
-        "challenges_done": challenges_done,
-        "challenges_total": challenges_total,
-        "calendar": calendar,
-    })
+    return jsonify(
+        {
+            "streak": compute_streak(practice["history"]),
+            "rq_streak": compute_streak(rq_practice["history"]),
+            "total_questions": total_questions,
+            "total_rq": total_rq,
+            "total_sd": len(sd_data["exercises"]),
+            "sd_this_week": sd_this_week,
+            "challenges_done": challenges_done,
+            "challenges_total": challenges_total,
+            "calendar": calendar,
+        }
+    )
 
 
 @app.route("/api/challenges", methods=["GET"])
@@ -447,11 +448,13 @@ def recruiter_today():
     selected_questions = [q_map[qid] for qid in selected_ids if qid in q_map]
     completed = practice["history"][today].get("completed", [])
 
-    return jsonify({
-        "questions": selected_questions,
-        "completed": completed,
-        "streak": compute_streak(practice["history"]),
-    })
+    return jsonify(
+        {
+            "questions": selected_questions,
+            "completed": completed,
+            "streak": compute_streak(practice["history"]),
+        }
+    )
 
 
 @app.route("/api/recruiter/complete", methods=["POST"])
