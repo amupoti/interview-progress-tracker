@@ -644,7 +644,7 @@ async function rqMarkDone(questionId) {
     body: JSON.stringify({ question_id: questionId }),
   });
   const data = await res.json();
-  rqPracticeData.completed.push(questionId);
+  if (!rqPracticeData.completed.includes(questionId)) rqPracticeData.completed.push(questionId);
   rqSetStreak(data.streak);
   rqRenderQuestions();
 }

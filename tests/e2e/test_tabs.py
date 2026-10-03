@@ -73,8 +73,10 @@ def test_recruiter_complete_and_reset(open_app):
 
 def test_recruiter_complete_all(open_app):
     page = open_tab(open_app, "recruiter")
-    for _ in range(5):
-        page.get_by_role("button", name="Mark as done").first.click()
+    cards = page.locator("#rq-questions-container .q-card")
+    for i in range(5):
+        cards.nth(i).get_by_role("button", name="Mark as done").click()
+        expect(cards.nth(i)).to_have_class("q-card q-card-done")
     expect(page.locator(".all-done-msg")).to_be_visible()
 
 
