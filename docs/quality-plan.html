@@ -181,7 +181,7 @@
       <tr><td>API tests</td><td><span class="pill ok">Good</span></td><td>Every line and branch of <code>app.py</code> and <code>storage.py</code> is covered</td></tr>
       <tr><td>UI tests</td><td><span class="pill ok">Good</span></td><td>Playwright drives every tab against a real server and a throwaway database</td></tr>
       <tr><td>Linting / formatting</td><td><span class="pill ok">Good</span></td><td>ruff, Biome and djlint run through pre-commit, locally and in CI</td></tr>
-      <tr><td>CI</td><td><span class="pill warn">Pending</span></td><td>Workflows are written and checked with actionlint. Waiting for their first run on GitHub</td></tr>
+      <tr><td>CI</td><td><span class="pill ok">Good</span></td><td>10 checks on every pull request, and merging into <code>main</code> requires them to pass</td></tr>
       <tr><td>Dependencies</td><td><span class="pill ok">Good</span></td><td>Pinned, no known vulnerabilities (pip-audit), Dependabot weekly</td></tr>
       <tr><td>Test data isolation</td><td><span class="pill ok">Good</span></td><td>Every data path is redirected, and the run aborts if a database inside the repo is opened</td></tr>
     </tbody>
@@ -270,7 +270,7 @@
   </li>
 
   <li class="phase">
-    <div class="head"><h3>Continuous integration</h3><span class="pill warn">Awaiting first run</span></div>
+    <div class="head"><h3>Continuous integration</h3><span class="pill ok">Done</span></div>
     <p><code>.github/workflows/ci.yml</code> runs on every push to <code>main</code> and on every pull request, with three parallel jobs:</p>
     <ul>
       <li><strong>lint</strong>: <code>pre-commit run --all-files</code> (ruff, Biome, djlint, file hygiene), then <code>pip-audit</code>.</li>
@@ -280,7 +280,7 @@
       <li>Branch protection on <code>main</code>: all CI jobs must pass before merging.</li>
     </ul>
     <p class="done"><strong>Done when:</strong> a red check blocks merging, and badges show live status.</p>
-    <p class="result" style="background:var(--warn-soft)"><strong>Status:</strong> both workflows pass <code>actionlint</code>, and the exact commands they run pass locally on Python 3.13. CI hasn't run on GitHub yet. Branch protection can only be turned on after the first run, because GitHub needs to have seen the check names.</p>
+    <p class="result"><strong>Result:</strong> all 10 checks pass on <a href="https://github.com/amupoti/interview-progress-tracker/pull/1">PR #1</a>: lint, unit tests on 3.10–3.13, the full suite, and CodeQL for 3 languages. In CI, backend coverage is 100%, frontend 98.53%, and the run has 168 passing tests plus the 1 expected failure, the same as locally. The first run failed three checks, each for a real reason: the personal data file was still tracked, a test leaked a SQLite connection (caught by the new resource-warning gate), and CodeQL flagged the always-on Flask debugger. All three are fixed. Branch protection now requires the lint, four unit and full-suite checks before anything merges into <code>main</code>.</p>
   </li>
 
   <li class="phase">
@@ -329,7 +329,7 @@
       <tr>
         <td>SQLite connections were never closed: <code>with sqlite3.connect(...)</code> only commits</td>
         <td>Every read and write leaked a connection until garbage collection</td>
-        <td>Python 3.13 reported 1,154 <code>ResourceWarning</code>s. <code>pytest.ini</code> now turns them into errors, and 6 tests fail against the old code</td>
+        <td>Python 3.13 reported 1,154 <code>ResourceWarning</code>s. <code>pytest.ini</code> now turns them into errors, and 6 tests fail against the old code. On its first CI run the gate also caught a test that leaked a connection the same way</td>
         <td><span class="pill ok">Fixed</span></td>
       </tr>
       <tr>
@@ -342,6 +342,12 @@
         <td>11 known vulnerabilities in pinned and transitive dependencies (<code>click</code>, <code>pytest</code>, <code>urllib3</code>, <code>requests</code>, <code>filelock</code>)</td>
         <td>None exploitable here (e.g. <code>click.edit()</code> is never called), but every fix needed Python 3.10+</td>
         <td><code>pip-audit</code></td>
+        <td><span class="pill ok">Fixed</span></td>
+      </tr>
+      <tr>
+        <td><code>python app.py</code> always ran Flask's interactive debugger</td>
+        <td>The debugger can run arbitrary Python from the browser. It was only reachable on localhost and PIN-protected, but on by default. It's now opt-in with <code>FLASK_DEBUG=1</code>, and auto-reload stays on</td>
+        <td>CodeQL <code>py/flask-debug</code> (high) on the first CI run. ruff had flagged it too, but it was suppressed at the time</td>
         <td><span class="pill ok">Fixed</span></td>
       </tr>
     </tbody>
