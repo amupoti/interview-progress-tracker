@@ -1,15 +1,23 @@
 import json
 import os
 import sqlite3
+from contextlib import contextmanager
 
 
+@contextmanager
 def _connect(database_file):
+    """Open the database, commit (or roll back on error), and always close it.
+    sqlite3's own context manager only commits; it never closes the connection."""
     directory = os.path.dirname(database_file)
     if directory:
         os.makedirs(directory, exist_ok=True)
     connection = sqlite3.connect(database_file)
-    connection.execute("CREATE TABLE IF NOT EXISTS app_state (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
-    return connection
+    try:
+        with connection:
+            connection.execute("CREATE TABLE IF NOT EXISTS app_state (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+            yield connection
+    finally:
+        connection.close()
 
 
 def load_state(database_file, key, default, legacy_file=None):
