@@ -27,6 +27,14 @@
       "linter": {
         "rules": { "correctness": { "noUnusedVariables": "off" } }
       }
+    },
+    {
+      // Flags source-order between unrelated selectors (e.g. row opacity in
+      // different tables). Reordering hand-written CSS for it risks visual changes.
+      "includes": ["static/style.css"],
+      "linter": {
+        "rules": { "style": { "noDescendingSpecificity": "off" } }
+      }
     }
   ]
 }

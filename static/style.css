@@ -320,6 +320,7 @@ select.status-select:focus { outline: 2px solid #93c5fd; outline-offset: 1px; }
 .contact-row input:focus { border-color: var(--primary); }
 
 /* ── Utility ── */
+/* biome-ignore lint/complexity/noImportantStyles: a utility class must beat component display rules */
 .hidden { display: none !important; }
 
 /* ── Tab nav ── */

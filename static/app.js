@@ -148,7 +148,7 @@ function stars(level) {
 
 function toNum(val) {
   const n = parseFloat(val);
-  return isNaN(n) ? null : n;
+  return Number.isNaN(n) ? null : n;
 }
 
 function todayISO() {
@@ -156,7 +156,7 @@ function todayISO() {
 }
 
 function clearInvalid() {
-  document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
+  for (const el of document.querySelectorAll('.invalid')) el.classList.remove('invalid');
 }
 
 /* ────────────────────────────────────────────
@@ -167,7 +167,7 @@ function switchTab(tabName) {
     btn.classList.toggle('active', btn.dataset.tab === tabName);
   });
   ['practice', 'recruiter', 'challenges', 'system-design', 'companies', 'jobs', 'pipeline', 'progress'].forEach(t => {
-    document.getElementById('tab-' + t).classList.toggle('hidden', tabName !== t);
+    document.getElementById(`tab-${t}`).classList.toggle('hidden', tabName !== t);
   });
 
   if (tabName === 'practice' && !practiceLoaded) {
@@ -272,8 +272,8 @@ function questionCardHTML(q, idx, completed) {
 }
 
 function toggleReveal(id) {
-  const reveal = document.getElementById('qreveal-' + id);
-  const btn = document.getElementById('qreveal-btn-' + id);
+  const reveal = document.getElementById(`qreveal-${id}`);
+  const btn = document.getElementById(`qreveal-btn-${id}`);
   const nowHidden = reveal.classList.toggle('hidden');
   btn.textContent = nowHidden ? '💡 Reveal tips & example' : '🙈 Hide tips & example';
 }
@@ -440,7 +440,7 @@ function renderCombinedCalendar(calendar) {
   const grid = document.getElementById('combined-cal-grid');
   grid.innerHTML = calendar
     .map(day => {
-      const d = new Date(day.date + 'T12:00:00');
+      const d = new Date(`${day.date}T12:00:00`);
       const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
       const dayNum = d.getDate();
       const month = d.toLocaleDateString('en-US', { month: 'short' });
@@ -454,10 +454,10 @@ function renderCombinedCalendar(calendar) {
         <span class="cal-day-name">${dayName}</span>
         <span class="cal-day-num">${dayNum}</span>
         <span class="cal-month-lbl">${month}</span>
-        <div class="cal-dot cal-dot-${qLevel}">${day.questions_completed > 0 ? '🧠 ' + day.questions_completed + '/' + day.questions_total : '—'}</div>
-        <div class="cal-sd-dot cal-sd-dot-${sdLevel}">${day.sd_count > 0 ? '🏗 ' + day.sd_count : '—'}</div>
-        <div class="cal-ch-dot cal-ch-dot-${chLevel}">${day.ch_count > 0 ? '💻 ' + day.ch_count : '—'}</div>
-        <div class="cal-rq-dot cal-rq-dot-${rqLevel}">${day.rq_count > 0 ? '🎤 ' + day.rq_count : '—'}</div>
+        <div class="cal-dot cal-dot-${qLevel}">${day.questions_completed > 0 ? `🧠 ${day.questions_completed}/${day.questions_total}` : '—'}</div>
+        <div class="cal-sd-dot cal-sd-dot-${sdLevel}">${day.sd_count > 0 ? `🏗 ${day.sd_count}` : '—'}</div>
+        <div class="cal-ch-dot cal-ch-dot-${chLevel}">${day.ch_count > 0 ? `💻 ${day.ch_count}` : '—'}</div>
+        <div class="cal-rq-dot cal-rq-dot-${rqLevel}">${day.rq_count > 0 ? `🎤 ${day.rq_count}` : '—'}</div>
       </div>
     `;
     })
@@ -518,8 +518,8 @@ function chRender() {
 
   document.getElementById('ch-done').textContent = done;
   document.getElementById('ch-total').textContent = total;
-  document.getElementById('ch-pct').textContent = pct + '%';
-  document.getElementById('ch-bar').style.width = pct + '%';
+  document.getElementById('ch-pct').textContent = `${pct}%`;
+  document.getElementById('ch-bar').style.width = `${pct}%`;
   document.getElementById('ch-easy-done').textContent = easyDone;
   document.getElementById('ch-easy-total').textContent = easyTotal;
   document.getElementById('ch-med-done').textContent = medDone;
@@ -631,8 +631,8 @@ function rqCardHTML(q, idx, completed) {
 }
 
 function rqToggleReveal(id) {
-  const reveal = document.getElementById('rqreveal-' + id);
-  const btn = document.getElementById('rqreveal-btn-' + id);
+  const reveal = document.getElementById(`rqreveal-${id}`);
+  const btn = document.getElementById(`rqreveal-btn-${id}`);
   const nowHidden = reveal.classList.toggle('hidden');
   btn.textContent = nowHidden ? '💡 Reveal tips & example' : '🙈 Hide tips & example';
 }
@@ -741,7 +741,7 @@ function coRender() {
       <td style="max-width:240px;white-space:pre-wrap;">${esc(c.benefits || '—')}</td>
       <td>
         ${gd ? `${stars(Math.round(gd.glassdoor_rating))} <span style="font-size:12px;color:#64748b;">${gd.glassdoor_rating}</span>` : '—'}
-        ${gd && gd.glassdoor_notes ? `<br/><span style="font-size:12px;color:#64748b;white-space:pre-wrap;">${esc(gd.glassdoor_notes)}</span>` : ''}
+        ${gd?.glassdoor_notes ? `<br/><span style="font-size:12px;color:#64748b;white-space:pre-wrap;">${esc(gd.glassdoor_notes)}</span>` : ''}
       </td>
       <td>${stars(c.interest_level)}</td>
       <td>
@@ -813,7 +813,7 @@ async function coHandleSubmit(evt) {
     notes: document.getElementById('co-f-notes').value.trim(),
   };
   const existing = companies.find(x => x.id === coEditingId);
-  if (existing && existing.excluded) entry.excluded = true;
+  if (existing?.excluded) entry.excluded = true;
 
   if (coEditingId) {
     const res = await fetch(`/api/companies/${coEditingId}`, {
@@ -914,7 +914,7 @@ function jobsRenderUpcoming() {
     <li>
       <strong>${esc(j.company)}</strong>
       ${esc(j.title || '')}
-      <span style="color:#92400e">${formatDate(j.next_interview_date)}${j.next_interview_type ? ' · ' + esc(j.next_interview_type) : ''}</span>
+      <span style="color:#92400e">${formatDate(j.next_interview_date)}${j.next_interview_type ? ` · ${esc(j.next_interview_type)}` : ''}</span>
     </li>
   `,
     )
@@ -966,12 +966,12 @@ function jobsFilterChanged() {
     else params.delete(param);
   }
   const query = params.toString();
-  history.replaceState(null, '', location.pathname + (query ? '?' + query : '') + location.hash);
+  history.replaceState(null, '', location.pathname + (query ? `?${query}` : '') + location.hash);
   jobsRender();
 }
 
 function jobContacts(j) {
-  return (j.contacts || []).filter(p => p.name && p.name.trim());
+  return (j.contacts || []).filter(p => p.name?.trim());
 }
 
 function jobsColValue(j, col) {
@@ -1120,7 +1120,7 @@ function jobsRender() {
             .map(s => `<option value="${s}"${(j.status || 'Pending') === s ? ' selected' : ''}>${s}</option>`)
             .join('')}
         </select>
-        ${j.next_interview_date ? `<br/><span style="font-size:12px;color:#64748b;">📅 ${formatDate(j.next_interview_date)}${j.next_interview_type ? ' · ' + esc(j.next_interview_type) : ''}</span>` : ''}
+        ${j.next_interview_date ? `<br/><span style="font-size:12px;color:#64748b;">📅 ${formatDate(j.next_interview_date)}${j.next_interview_type ? ` · ${esc(j.next_interview_type)}` : ''}</span>` : ''}
       </td>
       <td>${formatDate(j.date_added)}</td>
       <td>
@@ -1182,7 +1182,7 @@ function jobsCloseModal() {
 function jobsSetContactRows(contacts) {
   document.getElementById('jobs-contacts-list').innerHTML = '';
   jobsContactCount = 0;
-  (contacts && contacts.length ? contacts : [{}]).forEach(p => jobsAddContactRow(p));
+  for (const p of contacts?.length ? contacts : [{}]) jobsAddContactRow(p);
 }
 
 function jobsAddContactRow(contact = {}) {
@@ -1279,7 +1279,7 @@ async function jobsHandleSubmit(evt) {
 // Inline status change from the table. PUT replaces the whole record, so send the full job.
 function jobsExcludeCompany(id) {
   const j = jobs.find(x => x.id === id);
-  if (j && j.company) setCompanyExcluded(j.company, true);
+  if (j?.company) setCompanyExcluded(j.company, true);
 }
 
 async function jobsSetStatus(id, status) {
@@ -1372,7 +1372,7 @@ function pipelineRender() {
     const last = p[p.length - 1];
     current[last] = (current[last] || 0) + 1;
     for (let i = 1; i < p.length; i++) {
-      const key = p[i - 1] + '→' + p[i];
+      const key = `${p[i - 1]}→${p[i]}`;
       linkCounts[key] = (linkCounts[key] || 0) + 1;
     }
   });
@@ -1535,8 +1535,8 @@ function pipelineDraw(chart, reached, current, links) {
     tooltip.innerHTML = html;
     tooltip.classList.remove('hidden');
     const box = chart.parentElement.getBoundingClientRect();
-    tooltip.style.left = event.clientX - box.left + 14 + 'px';
-    tooltip.style.top = event.clientY - box.top + 14 + 'px';
+    tooltip.style.left = `${event.clientX - box.left + 14}px`;
+    tooltip.style.top = `${event.clientY - box.top + 14}px`;
   };
   chart.onmouseleave = () => tooltip.classList.add('hidden');
 }
