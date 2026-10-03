@@ -26,3 +26,11 @@ job-search.json
 
 # Claude Code local runtime state (skills under .claude/skills/ are tracked)
 .claude/scheduled_tasks.lock
+
+# Test and coverage output
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+test-results/
+coverage-js.lcov

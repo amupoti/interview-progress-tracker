@@ -6,7 +6,9 @@ import urllib.error
 import urllib.request
 import uuid
 from datetime import date, timedelta
-from flask import Flask, jsonify, request, render_template
+
+from flask import Flask, jsonify, render_template, request
+
 from storage import load_state, save_state
 
 app = Flask(__name__)
@@ -25,9 +27,11 @@ UNTOUCHED_JOB_STATUSES = ("Pending", "Interested")
 def check_job_link_closed(url):
     """Return True if the LinkedIn job posting at url is closed (no longer accepting applications),
     False if it looks open, or None if it couldn't be checked."""
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    if not url.lower().startswith(("http://", "https://")):
+        return None
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})  # noqa: S310 - scheme checked above
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=10) as resp:  # noqa: S310 - scheme checked above
             html = resp.read().decode("utf-8", errors="ignore")
     except (urllib.error.URLError, OSError, ValueError):
         return None
@@ -284,7 +288,7 @@ def practice_today():
     practice = load_practice()
     today = date.today().isoformat()
 
-    rng = _random.Random(int(date.today().strftime("%Y%m%d")))
+    rng = _random.Random(int(date.today().strftime("%Y%m%d")))  # noqa: S311 - picks practice questions, not security
     all_ids = [q["id"] for q in questions]
     selected_ids = rng.sample(all_ids, 3)
 
@@ -434,7 +438,7 @@ def recruiter_today():
     practice = load_recruiter_practice()
     today = date.today().isoformat()
 
-    rng = _random.Random(int(date.today().strftime("%Y%m%d")) + 1)
+    rng = _random.Random(int(date.today().strftime("%Y%m%d")) + 1)  # noqa: S311 - picks practice questions, not security
     all_ids = [q["id"] for q in questions]
     selected_ids = rng.sample(all_ids, 5)
 
@@ -673,5 +677,5 @@ def refresh_jobs():
     return jsonify({"checked": checked, "closed": closed})
 
 
-if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+if __name__ == "__main__":  # pragma: no cover
+    app.run(debug=True, port=5001)  # noqa: S201 - local dev server, bound to 127.0.0.1
