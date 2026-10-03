@@ -114,8 +114,7 @@ interview-progress-tracker/
 │   └── style.css        # Styles
 ├── templates/
 │   └── index.html       # HTML layout
-├── tests/               # API tests; tests/e2e has the Playwright UI tests
-└── docs/quality-plan.html  # How the project is tested and checked
+└── tests/               # API tests; tests/e2e has the Playwright UI tests
 ```
 
 ## Development
