@@ -21,6 +21,8 @@ python app.py
 ```
 
 Then open **http://localhost:5001** in your browser.
+The server reloads when you change the code. For Flask's interactive debugger in the
+browser, run `FLASK_DEBUG=1 python app.py`.
 
 > **Note (macOS):** port 5000 is used by AirPlay Receiver on modern macOS, which returns
 > a `403 Forbidden` for unrelated requests — that's why this app defaults to 5001.

@@ -1,5 +1,6 @@
 import json
 import sqlite3
+from contextlib import closing
 from datetime import date, timedelta
 
 import app as app_module
@@ -656,7 +657,7 @@ def test_legacy_jobs_are_imported_once(tmp_data):
 def test_data_is_saved_in_sqlite(tmp_data):
     app_module.save_jobs({"jobs": [{"id": "1", "company": "Acme"}]})
 
-    with sqlite3.connect(tmp_data / "tracker.db") as connection:
+    with closing(sqlite3.connect(tmp_data / "tracker.db")) as connection:
         row = connection.execute("SELECT value FROM app_state WHERE key = 'jobs'").fetchone()
 
     assert json.loads(row[0]) == {"jobs": [{"id": "1", "company": "Acme"}]}

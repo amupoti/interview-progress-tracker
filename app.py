@@ -678,4 +678,7 @@ def refresh_jobs():
 
 
 if __name__ == "__main__":  # pragma: no cover
-    app.run(debug=True, port=5001)  # noqa: S201 - local dev server, bound to 127.0.0.1
+    # Reload on code and template changes. The interactive debugger can run arbitrary
+    # code from the browser, so it is opt-in: FLASK_DEBUG=1 python app.py
+    app.config["TEMPLATES_AUTO_RELOAD"] = True
+    app.run(port=5001, use_reloader=True, debug=os.environ.get("FLASK_DEBUG") == "1")
