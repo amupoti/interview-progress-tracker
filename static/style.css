@@ -167,6 +167,7 @@ select.status-select:focus { outline: 2px solid #93c5fd; outline-offset: 1px; }
 .badge-offer        { background: #d1fae5; color: #065f46; }
 .badge-accepted     { background: #bbf7d0; color: #14532d; }
 .badge-rejected     { background: #fee2e2; color: #991b1b; }
+.badge-ghosted      { background: #f5f5f4; color: #57534e; }
 .badge-declined     { background: #f1f5f9; color: #475569; }
 .badge-pending      { background: #f1f5f9; color: #475569; }
 .badge-interested   { background: #e0f2fe; color: #0369a1; }

@@ -33,13 +33,13 @@ def test_match_badge_thresholds(js, score, badge):
 
 def test_job_status_rank_orders_furthest_along_first(js):
     ranks = js("""() => ['Offer', 'Interviewing', 'Applied', 'Interested', 'Pending',
-                         'Rejected', 'Discarded', 'Closed'].map(status => jobStatusRank({ status }))""")
+                         'Rejected', 'Ghosted', 'Discarded', 'Closed'].map(status => jobStatusRank({ status }))""")
     assert ranks == sorted(ranks)
 
 
 def test_job_status_rank_defaults_missing_to_pending_and_unknown_to_last(js):
     assert js("() => jobStatusRank({})") == js("() => jobStatusRank({ status: 'Pending' })")
-    assert js("() => jobStatusRank({ status: 'Ghosted' })") == 8
+    assert js("() => jobStatusRank({ status: 'Withdrawn' })") == 9
 
 
 @pytest.mark.parametrize(
@@ -60,10 +60,10 @@ def test_jobs_col_value(js, col, job, expected):
     assert js("([j, c]) => jobsColValue(j, c)", [job, col]) == expected
 
 
-def test_job_sinks_to_bottom_only_for_rejected_and_discarded(js):
-    sunk = js("""() => ['Pending', 'Applied', 'Offer', 'Closed', 'Rejected', 'Discarded']
+def test_job_sinks_to_bottom_only_for_rejected_ghosted_and_discarded(js):
+    sunk = js("""() => ['Pending', 'Applied', 'Offer', 'Closed', 'Rejected', 'Ghosted', 'Discarded']
                        .map(status => jobSinksToBottom({ status }))""")
-    assert sunk == [0, 0, 0, 0, 1, 1]
+    assert sunk == [0, 0, 0, 0, 1, 1, 1]
 
 
 @pytest.mark.parametrize(
@@ -73,10 +73,11 @@ def test_job_sinks_to_bottom_only_for_rejected_and_discarded(js):
         (["Pending", "Applied", "Interviewing"], ["Pending", "Applied", "Interviewing"]),
         # Moving back undoes the later steps.
         (["Pending", "Applied", "Interviewing", "Applied"], ["Pending", "Applied"]),
-        # Rejected and Discarded share a column, so one replaces the other.
+        # Rejected, Ghosted and Discarded share a column, so one replaces the other.
         (["Pending", "Rejected", "Discarded"], ["Pending", "Discarded"]),
         # Unknown statuses are ignored.
-        (["Pending", "Ghosted", "Applied"], ["Pending", "Applied"]),
+        (["Pending", "Withdrawn", "Applied"], ["Pending", "Applied"]),
+        (["Applied", "Ghosted", "Rejected"], ["Applied", "Rejected"]),
     ],
 )
 def test_pipeline_path(js, history, expected):

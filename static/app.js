@@ -35,6 +35,7 @@ const JOB_STATUS_BADGE = {
   'Interviewing': 'badge-interviewing',
   'Offer': 'badge-offer',
   'Rejected': 'badge-rejected',
+  'Ghosted': 'badge-ghosted',
   'Discarded': 'badge-discarded',
   'Closed': 'badge-closed',
 };
@@ -1003,6 +1004,7 @@ const JOB_STATUS_ORDER = [
   'Interested',
   'Pending',
   'Rejected',
+  'Ghosted',
   'Discarded',
   'Closed',
 ];
@@ -1019,7 +1021,7 @@ function matchBadge(score) {
   return 'badge-match-low';
 }
 
-const JOB_SUNK_STATUSES = ['Rejected', 'Discarded'];
+const JOB_SUNK_STATUSES = ['Rejected', 'Ghosted', 'Discarded'];
 function jobSinksToBottom(j) {
   return JOB_SUNK_STATUSES.includes(j.status) ? 1 : 0;
 }
@@ -1320,6 +1322,7 @@ const PIPELINE_STAGE = {
   'Interviewing': 3,
   'Offer': 4,
   'Rejected': 5,
+  'Ghosted': 5,
   'Discarded': 5,
   'Closed': 6,
 };
@@ -1330,6 +1333,7 @@ const PIPELINE_COLOR = {
   'Interviewing': '#eda100',
   'Offer': '#008300',
   'Rejected': '#e34948',
+  'Ghosted': '#78716c',
   'Discarded': '#475569',
   'Closed': '#a8a29e',
 };
