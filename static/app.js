@@ -59,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadSearchConfig().finally(jobsApplyUrlFilters);
 
   document.getElementById('pipeline-include-untouched').addEventListener('change', pipelineRender);
+  document.getElementById('pipeline-include-closed').addEventListener('change', pipelineRender);
   window.addEventListener('resize', () => {
     if (!document.getElementById('tab-pipeline').classList.contains('hidden')) pipelineRender();
   });
@@ -1362,8 +1363,11 @@ function pipelinePath(history) {
 
 function pipelineRender() {
   const includeUntouched = document.getElementById('pipeline-include-untouched').checked;
+  const includeClosed = document.getElementById('pipeline-include-closed').checked;
+  // Without Closed, a closed job ends at the last status it reached before closing.
   const paths = pipelineJobs
     .map(j => pipelinePath(j.status_history || [{ status: j.status || 'Pending' }]))
+    .map(p => (includeClosed ? p : p.filter(s => s !== 'Closed')))
     .filter(p => p.length && (includeUntouched || p.length > 1));
 
   const reached = {};

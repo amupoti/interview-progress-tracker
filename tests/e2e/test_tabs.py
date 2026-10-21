@@ -325,6 +325,22 @@ def test_pipeline_empty_state(open_app, seed_job):
     expect(page.locator("#pipeline-summary")).to_have_text("0 of 1 jobs shown")
 
 
+def test_pipeline_hides_closed_by_default(open_app, seed_job, api):
+    for title, path in [("A", ["Applied", "Closed"]), ("B", ["Closed"])]:
+        job = seed_job(title=title)
+        for status in path:
+            job = api.put(f"/api/jobs/{job['id']}", json={**job, "status": status}).get_json()
+
+    page = open_tab(open_app, "pipeline")
+    expect(page.locator("#pipeline-summary")).to_have_text("1 of 2 jobs shown")
+    expect(page.locator('#pipeline-chart [data-node="Applied"]')).to_have_count(1)
+    expect(page.locator('#pipeline-chart [data-node="Closed"]')).to_have_count(0)
+
+    page.check("#pipeline-include-closed")
+    expect(page.locator("#pipeline-summary")).to_have_text("2 of 2 jobs shown")
+    expect(page.locator('#pipeline-chart [data-node="Closed"]')).to_have_count(1)
+
+
 def test_pipeline_chart_and_table(open_app, seed_job, api):
     for title, path in [
         ("A", ["Applied", "Interviewing", "Offer"]),
