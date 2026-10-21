@@ -8,12 +8,14 @@ A lightweight web app to track your software engineering job applications — bu
 
 ## Requirements
 
-- Python 3.10+ (CI tests 3.10–3.13)
+- Python 3.10+ (CI tests 3.10–3.15)
 
 ## Setup
 
 ```bash
-# 1. Install dependencies
+# 1. Create a virtual environment and install dependencies
+#    (Homebrew Python refuses a global pip install, so use a venv)
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
 # 2. Run the app
